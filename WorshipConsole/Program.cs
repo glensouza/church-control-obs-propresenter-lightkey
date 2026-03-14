@@ -1,10 +1,14 @@
 using WorshipConsole.Components;
+using WorshipConsole.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton<UniFiService>();
+builder.Services.AddSingleton<ViscaService>();
 
 var app = builder.Build();
 
