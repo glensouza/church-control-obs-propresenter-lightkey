@@ -26,6 +26,7 @@ public class UniFiService
         var handler = new HttpClientHandler();
         if (_config.IgnoreSslErrors)
         {
+            _logger.LogWarning("UniFi TLS certificate validation is disabled (IgnoreSslErrors=true). Do not use this setting in production.");
             handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
         }
 
@@ -60,8 +61,12 @@ public class UniFiService
             {
                 _apiPrefix = "/proxy/network";
                 ExtractAuthFromResponse(response);
-                _logger.LogInformation("Authenticated to UniFi OS");
-                return true;
+                if (_authCookie != null)
+                {
+                    _logger.LogInformation("Authenticated to UniFi OS");
+                    return true;
+                }
+                _logger.LogWarning("UniFi OS login succeeded but no auth cookie was returned");
             }
 
             // Fallback to classic controller
@@ -71,8 +76,12 @@ public class UniFiService
             {
                 _apiPrefix = string.Empty;
                 ExtractAuthFromResponse(response);
-                _logger.LogInformation("Authenticated to UniFi classic controller");
-                return true;
+                if (_authCookie != null)
+                {
+                    _logger.LogInformation("Authenticated to UniFi classic controller");
+                    return true;
+                }
+                _logger.LogWarning("UniFi classic login succeeded but no auth cookie was returned");
             }
 
             _logger.LogWarning("UniFi authentication failed: {StatusCode}", response.StatusCode);
@@ -133,6 +142,7 @@ public class UniFiService
         var response = await _httpClient.SendAsync(requestFactory());
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
+            response.Dispose();
             _authCookie = null;
             _csrfToken = null;
             if (!await AuthenticateAsync())

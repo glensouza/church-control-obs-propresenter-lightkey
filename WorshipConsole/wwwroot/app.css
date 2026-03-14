@@ -178,6 +178,12 @@ h1:focus {
     font-weight: bold;
 }
 
+.preset-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .preset-save-btn {
     width: 36px;
     height: 36px;

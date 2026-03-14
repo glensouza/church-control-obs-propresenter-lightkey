@@ -39,7 +39,7 @@ public class ViscaService
         _logger = logger;
     }
 
-    private async Task SendCommandAsync(string ipAddress, int port, byte[] command)
+    private async Task<bool> SendCommandAsync(string ipAddress, int port, byte[] command)
     {
         try
         {
@@ -51,18 +51,21 @@ public class ViscaService
             stream.ReadTimeout = TimeoutMs;
             await stream.WriteAsync(command, cts.Token);
             await stream.FlushAsync(cts.Token);
+            return true;
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("VISCA command to {Ip}:{Port} timed out", ipAddress, port);
+            return false;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending VISCA command to {Ip}:{Port}", ipAddress, port);
+            return false;
         }
     }
 
-    public Task PanTiltAsync(string ipAddress, int port, PanTiltDirection direction, int panSpeed = 10, int tiltSpeed = 10)
+    public Task<bool> PanTiltAsync(string ipAddress, int port, PanTiltDirection direction, int panSpeed = 10, int tiltSpeed = 10)
     {
         byte ps = (byte)Math.Clamp(panSpeed, 1, 0x18);
         byte ts = (byte)Math.Clamp(tiltSpeed, 1, 0x17);
@@ -87,13 +90,13 @@ public class ViscaService
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task PanTiltStopAsync(string ipAddress, int port)
+    public Task<bool> PanTiltStopAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task ZoomAsync(string ipAddress, int port, ZoomDirection direction, int speed = 4)
+    public Task<bool> ZoomAsync(string ipAddress, int port, ZoomDirection direction, int speed = 4)
     {
         byte[] command;
         if (direction == ZoomDirection.Stop)
@@ -109,13 +112,13 @@ public class ViscaService
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task ZoomStopAsync(string ipAddress, int port)
+    public Task<bool> ZoomStopAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x04, 0x07, 0x00, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task FocusAsync(string ipAddress, int port, FocusDirection direction)
+    public Task<bool> FocusAsync(string ipAddress, int port, FocusDirection direction)
     {
         byte[] command;
         switch (direction)
@@ -133,39 +136,39 @@ public class ViscaService
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task FocusStopAsync(string ipAddress, int port)
+    public Task<bool> FocusStopAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x04, 0x08, 0x00, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task FocusAutoAsync(string ipAddress, int port)
+    public Task<bool> FocusAutoAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x04, 0x38, 0x02, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task FocusManualAsync(string ipAddress, int port)
+    public Task<bool> FocusManualAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x04, 0x38, 0x03, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task RecallPresetAsync(string ipAddress, int port, int presetNumber)
+    public Task<bool> RecallPresetAsync(string ipAddress, int port, int presetNumber)
     {
         byte preset = (byte)Math.Clamp(presetNumber, 0, 254);
         byte[] command = [0x81, 0x01, 0x04, 0x3F, 0x02, preset, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task SetPresetAsync(string ipAddress, int port, int presetNumber)
+    public Task<bool> SetPresetAsync(string ipAddress, int port, int presetNumber)
     {
         byte preset = (byte)Math.Clamp(presetNumber, 0, 254);
         byte[] command = [0x81, 0x01, 0x04, 0x3F, 0x01, preset, 0xFF];
         return SendCommandAsync(ipAddress, port, command);
     }
 
-    public Task HomeAsync(string ipAddress, int port)
+    public Task<bool> HomeAsync(string ipAddress, int port)
     {
         byte[] command = [0x81, 0x01, 0x06, 0x04, 0xFF];
         return SendCommandAsync(ipAddress, port, command);

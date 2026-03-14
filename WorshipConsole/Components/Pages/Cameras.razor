@@ -41,11 +41,11 @@
                                         <input class="form-check-input"
                                                type="checkbox"
                                                role="switch"
-                                               id="power-@cam.Name"
+                                               id="power-cam-@_cameras.IndexOf(cam)"
                                                checked="@(camStatus?.PoeEnabled ?? false)"
                                                disabled="@(!UniFi.IsConfigured || _loadingPorts)"
                                                @onchange="e => TogglePowerAsync(cam, (bool)(e.Value ?? false))" />
-                                        <label class="form-check-label visually-hidden" for="power-@cam.Name">Power</label>
+                                        <label class="form-check-label visually-hidden" for="power-cam-@_cameras.IndexOf(cam)">Power</label>
                                     </div>
                                     <span class="badge @(camStatus?.PoeEnabled == true ? "bg-success" : "bg-secondary")">
                                         @(camStatus?.PoeEnabled == true ? "ON" : "OFF")
@@ -67,34 +67,30 @@
                                         <div class="ptz-grid">
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Up-Left"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.UpLeft)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.UpLeft)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.UpLeft)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 ↖
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Up"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.Up)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.Up)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Up)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 <i class="fa-solid fa-arrow-up"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Up-Right"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.UpRight)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.UpRight)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.UpRight)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 ↗
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Left"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.Left)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.Left)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Left)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 <i class="fa-solid fa-arrow-left"></i>
                                             </button>
                                             <button class="btn btn-outline-teal ptz-btn"
@@ -104,34 +100,30 @@
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Right"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.Right)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.Right)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Right)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 <i class="fa-solid fa-arrow-right"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Down-Left"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.DownLeft)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.DownLeft)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.DownLeft)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 ↙
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Down"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.Down)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.Down)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Down)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 <i class="fa-solid fa-arrow-down"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Down-Right"
-                                                    @onmousedown="() => StartPanTiltAsync(cam, PanTiltDirection.DownRight)"
-                                                    @onmouseup="() => StopPanTiltAsync(cam)"
-                                                    @ontouchstart="() => StartPanTiltAsync(cam, PanTiltDirection.DownRight)"
-                                                    @ontouchend="() => StopPanTiltAsync(cam)">
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.DownRight)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
                                                 ↘
                                             </button>
                                         </div>
@@ -143,18 +135,16 @@
                                         <div class="d-flex flex-column gap-1 mb-3">
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Zoom In"
-                                                    @onmousedown="() => StartZoomAsync(cam, ZoomDirection.In)"
-                                                    @onmouseup="() => StopZoomAsync(cam)"
-                                                    @ontouchstart="() => StartZoomAsync(cam, ZoomDirection.In)"
-                                                    @ontouchend="() => StopZoomAsync(cam)">
+                                                    @onpointerdown="() => StartZoomAsync(cam, ZoomDirection.In)"
+                                                    @onpointerup="() => StopZoomAsync(cam)"
+                                                    @onpointercancel="() => StopZoomAsync(cam)">
                                                 <i class="fa-solid fa-magnifying-glass-plus"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Zoom Out"
-                                                    @onmousedown="() => StartZoomAsync(cam, ZoomDirection.Out)"
-                                                    @onmouseup="() => StopZoomAsync(cam)"
-                                                    @ontouchstart="() => StartZoomAsync(cam, ZoomDirection.Out)"
-                                                    @ontouchend="() => StopZoomAsync(cam)">
+                                                    @onpointerdown="() => StartZoomAsync(cam, ZoomDirection.Out)"
+                                                    @onpointerup="() => StopZoomAsync(cam)"
+                                                    @onpointercancel="() => StopZoomAsync(cam)">
                                                 <i class="fa-solid fa-magnifying-glass-minus"></i>
                                             </button>
                                         </div>
@@ -163,18 +153,16 @@
                                         <div class="d-flex flex-column gap-1">
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Focus Far"
-                                                    @onmousedown="() => StartFocusAsync(cam, FocusDirection.Far)"
-                                                    @onmouseup="() => StopFocusAsync(cam)"
-                                                    @ontouchstart="() => StartFocusAsync(cam, FocusDirection.Far)"
-                                                    @ontouchend="() => StopFocusAsync(cam)">
+                                                    @onpointerdown="() => StartFocusAsync(cam, FocusDirection.Far)"
+                                                    @onpointerup="() => StopFocusAsync(cam)"
+                                                    @onpointercancel="() => StopFocusAsync(cam)">
                                                 <i class="fa-solid fa-circle-plus"></i>
                                             </button>
                                             <button class="btn btn-outline-secondary ptz-btn"
                                                     title="Focus Near"
-                                                    @onmousedown="() => StartFocusAsync(cam, FocusDirection.Near)"
-                                                    @onmouseup="() => StopFocusAsync(cam)"
-                                                    @ontouchstart="() => StartFocusAsync(cam, FocusDirection.Near)"
-                                                    @ontouchend="() => StopFocusAsync(cam)">
+                                                    @onpointerdown="() => StartFocusAsync(cam, FocusDirection.Near)"
+                                                    @onpointerup="() => StopFocusAsync(cam)"
+                                                    @onpointercancel="() => StopFocusAsync(cam)">
                                                 <i class="fa-solid fa-circle-minus"></i>
                                             </button>
                                             <button class="btn btn-outline-teal ptz-btn"
@@ -306,27 +294,42 @@
 
     private async Task RecallPresetAsync(CameraInfo cam, int presetIndex)
     {
-        await Visca.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
-        ShowStatus($"{cam.Name} – recalled preset {presetIndex + 1}");
+        var ok = await Visca.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        ShowStatus(ok
+            ? $"{cam.Name} – recalled preset {presetIndex + 1}"
+            : $"{cam.Name} – failed to recall preset {presetIndex + 1}");
     }
 
     private async Task SavePresetAsync(CameraInfo cam, int presetIndex)
     {
-        await Visca.SetPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
-        ShowStatus($"{cam.Name} – saved preset {presetIndex + 1}");
+        var ok = await Visca.SetPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        ShowStatus(ok
+            ? $"{cam.Name} – saved preset {presetIndex + 1}"
+            : $"{cam.Name} – failed to save preset {presetIndex + 1}");
     }
+
+    private CancellationTokenSource? _statusCts;
 
     private void ShowStatus(string message)
     {
+        _statusCts?.Cancel();
+        _statusCts = new CancellationTokenSource();
         _statusMessage = message;
         StateHasChanged();
-        _ = DismissStatusAfterDelayAsync();
+        _ = DismissStatusAfterDelayAsync(_statusCts.Token);
     }
 
-    private async Task DismissStatusAfterDelayAsync()
+    private async Task DismissStatusAfterDelayAsync(CancellationToken ct)
     {
-        await Task.Delay(3000);
-        _statusMessage = null;
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            await Task.Delay(3000, ct);
+            _statusMessage = null;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer status message
+        }
     }
 }
