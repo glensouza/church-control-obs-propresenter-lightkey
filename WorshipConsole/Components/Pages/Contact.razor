@@ -1,5 +1,6 @@
 ﻿@page "/contact"
 @inject PcoApiService PcoApiService
+@inject ILogger<Contact> Logger
 
 <PageTitle>Contact | Worship Console</PageTitle>
 
@@ -102,7 +103,8 @@
         }
         catch (Exception ex)
         {
-            _error = $"An error occurred while loading contacts: {ex.Message}";
+            Logger.LogError(ex, "Failed to load service contacts from Planning Center Online.");
+            _error = "An error occurred while loading contacts. Please try again later.";
         }
         finally
         {

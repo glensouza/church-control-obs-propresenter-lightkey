@@ -94,7 +94,7 @@ public class PcoApiService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching plans from PCO for service type {ServiceTypeId}.", serviceTypeId);
-            return null;
+            throw;
         }
     }
 
@@ -114,7 +114,7 @@ public class PcoApiService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching team members from PCO for plan {PlanId}.", planId);
-            return [];
+            throw;
         }
     }
 
