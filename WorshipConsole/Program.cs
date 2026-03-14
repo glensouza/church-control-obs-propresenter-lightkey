@@ -9,6 +9,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<UniFiService>();
 builder.Services.AddSingleton<ViscaService>();
+builder.Services.AddScoped<ObsWebSocketService>();
+builder.Services.AddHttpClient<PcoApiService>();
 
 var app = builder.Build();
 
