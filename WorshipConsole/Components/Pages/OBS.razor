@@ -1,9 +1,490 @@
-﻿@page "/obs"
+@page "/obs"
+@rendermode InteractiveServer
+@inject IConfiguration Configuration
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@implements IAsyncDisposable
 
-<h3>OBS</h3>
+<PageTitle>OBS Control | Worship Console</PageTitle>
 
-<p>TODO</p>
+<div class="container-fluid py-4 px-4">
+
+    @* ── Header ── *@
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <img src="obs.png" style="height:40px;" alt="OBS" />
+            <h2 class="fw-bold mb-0">OBS Control</h2>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            @switch (_state)
+            {
+                case AppState.Connected:
+                    <span class="badge bg-success fs-6">● Connected</span>
+                    <button class="btn btn-sm btn-outline-danger" @onclick="Disconnect">Disconnect</button>
+                    break;
+                case AppState.Connecting:
+                    <span class="badge bg-warning text-dark fs-6">
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>Connecting…
+                    </span>
+                    break;
+                case AppState.Error:
+                    <span class="badge bg-danger fs-6">● Error</span>
+                    <button class="btn btn-sm btn-outline-teal" @onclick="Connect">Reconnect</button>
+                    break;
+                default:
+                    <span class="badge bg-secondary fs-6">○ Disconnected</span>
+                    <button class="btn btn-sm btn-outline-teal" @onclick="Connect">Connect</button>
+                    break;
+            }
+        </div>
+    </div>
+
+    @* ── Error banner ── *@
+    @if (_state == AppState.Error && !string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="alert alert-danger d-flex align-items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>@_errorMessage</span>
+        </div>
+    }
+
+    @* ── Not-connected placeholder ── *@
+    @if (_state is AppState.Disconnected or AppState.Connecting)
+    {
+        <div class="text-center py-5">
+            <img src="obs.png" style="height:120px;opacity:.4;" alt="OBS" class="mb-4" />
+            <h4 class="text-gray">
+                @(_state == AppState.Connecting ? "Connecting to OBS…" : "Not connected to OBS")
+            </h4>
+            <p class="text-gray">
+                Configured host: <code class="text-teal">@_obsHost:@_obsPort</code>
+            </p>
+            @if (_state == AppState.Connecting)
+            {
+                <div class="spinner-border text-teal mt-2" role="status">
+                    <span class="visually-hidden">Connecting…</span>
+                </div>
+            }
+        </div>
+    }
+
+    @* ── Connected UI ── *@
+    @if (_state == AppState.Connected)
+    {
+        @* ── Toolbar: Profile · Scene Collection · Studio Mode ── *@
+        <div class="d-flex flex-wrap align-items-end gap-4 mb-4">
+
+            @* Profile *@
+            @if (_profiles.Count > 0)
+            {
+                <div>
+                    <label class="form-label text-gray small mb-1">Profile</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            @onchange="ProfileChanged">
+                        @foreach (var p in _profiles)
+                        {
+                            <option value="@p" selected="@(_currentProfile == p)">@p</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @* Scene Collection *@
+            @if (_sceneCollections.Count > 0)
+            {
+                <div>
+                    <label class="form-label text-gray small mb-1">Scene Collection</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            @onchange="SceneCollectionChanged">
+                        @foreach (var c in _sceneCollections)
+                        {
+                            <option value="@c" selected="@(_currentSceneCollection == c)">@c</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @* Studio Mode toggle *@
+            <div class="form-check form-switch mb-1">
+                <input class="form-check-input" type="checkbox" id="studioSwitch" role="switch"
+                       checked="@_studioMode"
+                       @onchange="StudioModeToggled" />
+                <label class="form-check-label text-white" for="studioSwitch">Studio Mode</label>
+            </div>
+        </div>
+
+        @* ── Scenes ── *@
+        @if (_studioMode)
+        {
+            <div class="row g-4 mb-4">
+                @* Preview column *@
+                <div class="col-12 col-md-6">
+                    <h5 class="text-teal mb-3">
+                        <i class="fa-solid fa-eye me-1"></i> Preview
+                    </h5>
+                    <div class="row g-2">
+                        @foreach (var scene in _scenes)
+                        {
+                            <div class="col-6 col-lg-4">
+                                <button class="btn w-100 py-3 scene-btn @(_currentPreviewScene == scene.SceneName ? "btn-teal-glow" : "btn-outline-secondary")"
+                                        @onclick="() => SwitchPreviewScene(scene.SceneName)">
+                                    @scene.SceneName
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-warning w-100 fw-bold" @onclick="TransitionToProgram">
+                            ⇒ Transition to Program
+                        </button>
+                    </div>
+                </div>
+
+                @* Program column *@
+                <div class="col-12 col-md-6">
+                    <h5 class="text-danger mb-3">
+                        <i class="fa-solid fa-circle-dot me-1"></i> Program
+                    </h5>
+                    <div class="row g-2">
+                        @foreach (var scene in _scenes)
+                        {
+                            <div class="col-6 col-lg-4">
+                                <button class="btn w-100 py-3 scene-btn @(_currentProgramScene == scene.SceneName ? "btn-danger" : "btn-outline-danger")"
+                                        @onclick="() => SwitchProgramScene(scene.SceneName)">
+                                    @scene.SceneName
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="mb-4">
+                <h5 class="text-gray mb-3">Scenes</h5>
+                <div class="row g-2">
+                    @foreach (var scene in _scenes)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <button class="btn w-100 py-3 scene-btn @(_currentProgramScene == scene.SceneName ? "btn-teal-glow" : "btn-outline-secondary")"
+                                    @onclick="() => SwitchScene(scene.SceneName)">
+                                @scene.SceneName
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── Output controls ── *@
+        <div class="d-flex flex-wrap gap-3 mt-2">
+
+            @* Stream *@
+            <button class="btn btn-lg fw-bold @(_streaming ? "btn-danger" : "btn-outline-teal")"
+                    @onclick="ToggleStream">
+                @if (_streaming)
+                {
+                    <i class="fa-solid fa-stop me-1"></i><text>Stop Stream</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-circle-play me-1"></i><text>Start Stream</text>
+                }
+            </button>
+
+            @* Record *@
+            <button class="btn btn-lg fw-bold @(_recording ? "btn-danger" : "btn-outline-secondary")"
+                    @onclick="ToggleRecord">
+                @if (_recording)
+                {
+                    <i class="fa-solid fa-stop me-1"></i><text>Stop Recording</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-circle me-1"></i><text>Start Recording</text>
+                }
+            </button>
+
+            @* Virtual Camera *@
+            <button class="btn btn-lg fw-bold @(_virtualCam ? "btn-warning" : "btn-outline-secondary")"
+                    @onclick="ToggleVirtualCam">
+                @if (_virtualCam)
+                {
+                    <i class="fa-solid fa-video-slash me-1"></i><text>Stop Virtual Camera</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-video me-1"></i><text>Start Virtual Camera</text>
+                }
+            </button>
+
+            @* Replay Buffer *@
+            @if (_replayBuffer)
+            {
+                <button class="btn btn-lg fw-bold btn-success" @onclick="SaveReplayBuffer">
+                    <i class="fa-solid fa-floppy-disk me-1"></i>Save Replay
+                </button>
+                <button class="btn btn-lg fw-bold btn-outline-danger" @onclick="StopReplayBuffer">
+                    <i class="fa-solid fa-stop me-1"></i>Stop Buffer
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-lg fw-bold btn-outline-secondary" @onclick="StartReplayBuffer">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Start Replay Buffer
+                </button>
+            }
+        </div>
+    }
+</div>
 
 @code {
+    private enum AppState { Disconnected, Connecting, Connected, Error }
 
+    private AppState _state = AppState.Disconnected;
+    private string _errorMessage = string.Empty;
+
+    // OBS state
+    private List<OBSScene> _scenes = [];
+    private string _currentProgramScene = string.Empty;
+    private string _currentPreviewScene = string.Empty;
+    private bool _streaming;
+    private bool _recording;
+    private bool _virtualCam;
+    private bool _replayBuffer;
+    private bool _studioMode;
+    private List<string> _profiles = [];
+    private string _currentProfile = string.Empty;
+    private List<string> _sceneCollections = [];
+    private string _currentSceneCollection = string.Empty;
+
+    // JS interop
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<OBS>? _dotNetRef;
+
+    // Config (read from appsettings.json)
+    private string _obsHost = "127.0.0.1";
+    private int _obsPort = 4455;
+    private string _obsPassword = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _obsHost = Configuration["OBS:Host"] ?? "127.0.0.1";
+        _obsPort = int.TryParse(Configuration["OBS:Port"], out var p) ? p : 4455;
+        _obsPassword = Configuration["OBS:Password"] ?? string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", $"{Nav.BaseUri}js/obs.js");
+            await Connect();
+        }
+    }
+
+    private async Task Connect()
+    {
+        _state = AppState.Connecting;
+        _errorMessage = string.Empty;
+        StateHasChanged();
+        await _module!.InvokeVoidAsync("connect", _obsHost, _obsPort, _obsPassword, _dotNetRef);
+    }
+
+    private async Task Disconnect()
+    {
+        await _module!.InvokeVoidAsync("disconnect");
+    }
+
+    // ── JSInvokable callbacks (called from obs.js) ──
+
+    [JSInvokable]
+    public async Task OnConnected(string stateJson)
+    {
+        var s = System.Text.Json.JsonSerializer.Deserialize<OBSInitialState>(stateJson,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+
+        _state = AppState.Connected;
+        _scenes = s.Scenes ?? [];
+        _currentProgramScene = s.CurrentProgramSceneName ?? string.Empty;
+        _currentPreviewScene = s.CurrentPreviewSceneName ?? string.Empty;
+        _streaming = s.Streaming;
+        _recording = s.Recording;
+        _virtualCam = s.VirtualCam;
+        _replayBuffer = s.ReplayBuffer;
+        _studioMode = s.StudioMode;
+        _profiles = s.Profiles ?? [];
+        _currentProfile = s.CurrentProfile ?? string.Empty;
+        _sceneCollections = s.SceneCollections ?? [];
+        _currentSceneCollection = s.CurrentSceneCollection ?? string.Empty;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnDisconnected()
+    {
+        _state = AppState.Disconnected;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnConnectionError(string message)
+    {
+        _state = AppState.Error;
+        _errorMessage = message;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnSceneChanged(string sceneName, bool isPreview)
+    {
+        if (isPreview) _currentPreviewScene = sceneName;
+        else _currentProgramScene = sceneName;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnStreamStateChanged(bool active)
+    {
+        _streaming = active;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnRecordStateChanged(bool active)
+    {
+        _recording = active;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnVirtualCamStateChanged(bool active)
+    {
+        _virtualCam = active;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnReplayBufferStateChanged(bool active)
+    {
+        _replayBuffer = active;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnStudioModeChanged(bool enabled)
+    {
+        _studioMode = enabled;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnScenesChanged(string scenesJson)
+    {
+        _scenes = System.Text.Json.JsonSerializer.Deserialize<List<OBSScene>>(scenesJson,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnProfileChanged(string profileName)
+    {
+        _currentProfile = profileName;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnSceneCollectionChanged(string collectionName)
+    {
+        _currentSceneCollection = collectionName;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // ── User-action helpers ──
+
+    private async Task SwitchScene(string name) =>
+        await _module!.InvokeVoidAsync("switchScene", name);
+
+    private async Task SwitchPreviewScene(string name) =>
+        await _module!.InvokeVoidAsync("switchPreviewScene", name);
+
+    private async Task SwitchProgramScene(string name) =>
+        await _module!.InvokeVoidAsync("switchScene", name);
+
+    private async Task TransitionToProgram() =>
+        await _module!.InvokeVoidAsync("transitionToProgram");
+
+    private async Task ToggleStream()
+    {
+        if (_streaming) await _module!.InvokeVoidAsync("stopStream");
+        else await _module!.InvokeVoidAsync("startStream");
+    }
+
+    private async Task ToggleRecord()
+    {
+        if (_recording) await _module!.InvokeVoidAsync("stopRecord");
+        else await _module!.InvokeVoidAsync("startRecord");
+    }
+
+    private async Task ToggleVirtualCam()
+    {
+        if (_virtualCam) await _module!.InvokeVoidAsync("stopVirtualCam");
+        else await _module!.InvokeVoidAsync("startVirtualCam");
+    }
+
+    private async Task StartReplayBuffer() =>
+        await _module!.InvokeVoidAsync("startReplayBuffer");
+
+    private async Task StopReplayBuffer() =>
+        await _module!.InvokeVoidAsync("stopReplayBuffer");
+
+    private async Task SaveReplayBuffer() =>
+        await _module!.InvokeVoidAsync("saveReplayBuffer");
+
+    private async Task StudioModeToggled() =>
+        await _module!.InvokeVoidAsync("setStudioMode", !_studioMode);
+
+    private async Task ProfileChanged(ChangeEventArgs e) =>
+        await _module!.InvokeVoidAsync("setProfile", e.Value?.ToString() ?? string.Empty);
+
+    private async Task SceneCollectionChanged(ChangeEventArgs e) =>
+        await _module!.InvokeVoidAsync("setSceneCollection", e.Value?.ToString() ?? string.Empty);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try { await _module.InvokeVoidAsync("disconnect"); } catch { /* ignore if already closed */ }
+            await _module.DisposeAsync();
+        }
+        _dotNetRef?.Dispose();
+    }
+
+    // ── Local model types ──
+
+    private sealed record OBSScene
+    {
+        public string SceneName { get; init; } = string.Empty;
+        public int SceneIndex { get; init; }
+    }
+
+    private sealed record OBSInitialState
+    {
+        public List<OBSScene>? Scenes { get; init; }
+        public string? CurrentProgramSceneName { get; init; }
+        public string? CurrentPreviewSceneName { get; init; }
+        public bool Streaming { get; init; }
+        public bool Recording { get; init; }
+        public bool VirtualCam { get; init; }
+        public bool ReplayBuffer { get; init; }
+        public bool StudioMode { get; init; }
+        public List<string>? Profiles { get; init; }
+        public string? CurrentProfile { get; init; }
+        public List<string>? SceneCollections { get; init; }
+        public string? CurrentSceneCollection { get; init; }
+    }
 }
