@@ -1,0 +1,55 @@
+/* Show dropdown menus on hover for larger screens while keeping click on mobile */
+@media (min-width: 992px) {
+  .navbar-nav .dropdown:hover > .dropdown-menu {
+    display: block;
+  }
+  /* prevent dropdown from closing immediately when moving from the toggle to the menu */
+  .navbar-nav .dropdown > .dropdown-menu {
+    margin-top: 0;
+  }
+}
+
+/* Ensure dropdown toggle caret visibility if needed */
+.navbar-nav .dropdown-toggle::after {
+  margin-left: .255em;
+}
+
+/* Align nav links and caret vertically so the caret sits inline with the label */
+.navbar-nav .nav-link,
+.navbar-nav .dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Hide the built-in caret for split toggles (we use a separate toggle button) */
+.navbar-nav .dropdown-toggle-split::after {
+  display: none !important;
+}
+
+/* Make the dropdown split toggle a minimal inline control to the right of the label */
+.navbar-nav .dropdown-toggle.dropdown-toggle-split {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .25rem;
+  margin-left: .35rem;
+  background: transparent !important;
+  border: 0 !important;
+  color: inherit;
+  appearance: none;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Render a CSS caret for the split toggle instead of the default boxed icon */
+.navbar-nav .dropdown-toggle.dropdown-toggle-split::after {
+  content: "";
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0;
+  width: 0;
+  height: 0;
+  border-left: .35em solid transparent;
+  border-right: .35em solid transparent;
+  border-top: .45em solid currentColor;
+}
