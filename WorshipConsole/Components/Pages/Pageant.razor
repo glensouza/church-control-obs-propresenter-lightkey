@@ -1,7 +1,205 @@
 ﻿@page "/pageant"
+@using Microsoft.EntityFrameworkCore
+@using WorshipConsole.Database
+@using WorshipConsole.Models
+@inject IDbContextFactory<PageantDb> DbFactory
+@rendermode InteractiveServer
 
-<h3>Pageant</h3>
+<PageTitle>Worship Console | Pageant</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <i class="fa-solid fa-star text-teal me-3 fs-3"></i>
+        <h1 class="fw-bold mb-0">Pageant Script</h1>
+    </div>
+
+    @if (scripts == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-teal" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-gray mt-3">Loading scripts...</p>
+        </div>
+    }
+    else if (!scripts.Any())
+    {
+        <div class="card navy-light-bg text-white border-secondary p-5 text-center">
+            <i class="fa-solid fa-file-lines display-3 text-teal mb-3"></i>
+            <h3 class="fw-bold">No Scripts Found</h3>
+            <p class="text-gray mb-0">No pageant script entries have been added yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row mb-4 g-3 align-items-center">
+            <div class="col-auto">
+                <label class="text-gray fw-semibold">Filter by Act:</label>
+            </div>
+            <div class="col-auto">
+                <select class="form-select bg-dark text-white border-secondary" @onchange="OnActFilterChanged">
+                    <option value="">All Acts</option>
+                    @foreach (var act in acts)
+                    {
+                        <option value="@act">@act</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto ms-auto">
+                <span class="badge bg-teal text-dark fw-semibold px-3 py-2">
+                    @filteredScripts.Count() scenes
+                </span>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            @foreach (var script in filteredScripts)
+            {
+                <div class="col-12">
+                    <div class="card navy-light-bg text-white border-secondary script-card @(selectedScript?.Id == script.Id ? "border-teal" : "")"
+                         @onclick="() => SelectScript(script)" style="cursor: pointer;">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-teal text-dark me-2">@script.Act</span>
+                                    <span class="fw-bold">@script.Scene</span>
+                                </div>
+                                <span class="text-gray small">
+                                    <i class="fa-regular fa-clock me-1"></i>@script.SceneLength sec
+                                </span>
+                            </div>
+                            <p class="text-gray mb-2 small">@script.Text</p>
+                            @if (!string.IsNullOrEmpty(script.SwitchToScene))
+                            {
+                                <div class="mt-2">
+                                    <span class="text-teal small">
+                                        <i class="fa-solid fa-film me-1"></i>OBS: @script.SwitchToScene
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (selectedScript != null)
+        {
+            <div class="card navy-light-bg text-white border-secondary mt-4 detail-panel">
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fa-solid fa-circle-info text-teal me-2"></i>Script Detail
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => selectedScript = null">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6 class="text-teal fw-semibold mb-3">
+                                <i class="fa-solid fa-clapperboard me-2"></i>Scene Info
+                            </h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4 text-gray">Act</dt>
+                                <dd class="col-sm-8">@selectedScript.Act</dd>
+                                <dt class="col-sm-4 text-gray">Scene</dt>
+                                <dd class="col-sm-8">@selectedScript.Scene</dd>
+                                <dt class="col-sm-4 text-gray">Length</dt>
+                                <dd class="col-sm-8">@selectedScript.SceneLength seconds</dd>
+                                <dt class="col-sm-4 text-gray">OBS Scene</dt>
+                                <dd class="col-sm-8">@(string.IsNullOrEmpty(selectedScript.SwitchToScene) ? "—" : selectedScript.SwitchToScene)</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-teal fw-semibold mb-3">
+                                <i class="fa-solid fa-video me-2"></i>Camera Cues
+                            </h6>
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4 text-gray">Cam 1</dt>
+                                <dd class="col-sm-8">@selectedScript.Camera1Action @(string.IsNullOrEmpty(selectedScript.Camera1Position) ? "" : $"({selectedScript.Camera1Position})")</dd>
+                                <dt class="col-sm-4 text-gray">Cam 2</dt>
+                                <dd class="col-sm-8">@selectedScript.Camera2Action @(string.IsNullOrEmpty(selectedScript.Camera2Position) ? "" : $"({selectedScript.Camera2Position})")</dd>
+                                <dt class="col-sm-4 text-gray">Cam 3</dt>
+                                <dd class="col-sm-8">@selectedScript.Camera3Action @(string.IsNullOrEmpty(selectedScript.Camera3Position) ? "" : $"({selectedScript.Camera3Position})")</dd>
+                            </dl>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="text-teal fw-semibold mb-2">
+                                <i class="fa-solid fa-align-left me-2"></i>Script Text
+                            </h6>
+                            <div class="bg-dark p-3 rounded border border-secondary">
+                                <p class="mb-0">@selectedScript.Text</p>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(selectedScript.StageLightScene) || !string.IsNullOrEmpty(selectedScript.LightingNotes))
+                        {
+                            <div class="col-12">
+                                <h6 class="text-teal fw-semibold mb-3">
+                                    <i class="fa-solid fa-lightbulb me-2"></i>Lighting
+                                </h6>
+                                <dl class="row mb-0">
+                                    @if (!string.IsNullOrEmpty(selectedScript.StageLightScene))
+                                    {
+                                        <dt class="col-sm-3 text-gray">Stage Scene</dt>
+                                        <dd class="col-sm-9">@selectedScript.StageLightScene</dd>
+                                    }
+                                    @if (!string.IsNullOrEmpty(selectedScript.SpotlightLeft))
+                                    {
+                                        <dt class="col-sm-3 text-gray">Spotlight L</dt>
+                                        <dd class="col-sm-9">@selectedScript.SpotlightLeft</dd>
+                                    }
+                                    @if (!string.IsNullOrEmpty(selectedScript.SpotlightRight))
+                                    {
+                                        <dt class="col-sm-3 text-gray">Spotlight R</dt>
+                                        <dd class="col-sm-9">@selectedScript.SpotlightRight</dd>
+                                    }
+                                    @if (!string.IsNullOrEmpty(selectedScript.HouseLights))
+                                    {
+                                        <dt class="col-sm-3 text-gray">House Lights</dt>
+                                        <dd class="col-sm-9">@selectedScript.HouseLights</dd>
+                                    }
+                                    @if (!string.IsNullOrEmpty(selectedScript.LightingNotes))
+                                    {
+                                        <dt class="col-sm-3 text-gray">Notes</dt>
+                                        <dd class="col-sm-9">@selectedScript.LightingNotes</dd>
+                                    }
+                                </dl>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
 
 @code {
+    private List<Script>? scripts;
+    private Script? selectedScript;
+    private string actFilter = string.Empty;
+    private IEnumerable<string> acts => scripts?.Select(s => s.Act).Distinct().Order() ?? Enumerable.Empty<string>();
+    private IEnumerable<Script> filteredScripts =>
+        scripts == null ? [] :
+        string.IsNullOrEmpty(actFilter)
+            ? scripts
+            : scripts.Where(s => s.Act == actFilter);
 
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
+    }
+
+    private void SelectScript(Script script)
+    {
+        selectedScript = selectedScript?.Id == script.Id ? null : script;
+    }
+
+    private void OnActFilterChanged(ChangeEventArgs e)
+    {
+        actFilter = e.Value?.ToString() ?? string.Empty;
+        selectedScript = null;
+    }
 }
+
