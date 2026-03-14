@@ -1,16 +1,335 @@
-﻿@page "/cameras"
+@page "/cameras"
+@rendermode InteractiveServer
 
-<h3>Cameras</h3>
+@using WorshipConsole.Models
+@using WorshipConsole.Services
 
-<p>
-    TODO
-    <ul>
-        <li>on/off</li>
-        <li>set</li>
-        <li>get</li>
-    </ul>
-</p>
+@inject IConfiguration Configuration
+@inject UniFiService UniFi
+@inject ViscaService Visca
+
+<PageTitle>Cameras</PageTitle>
+
+<div class="container py-4">
+    <h2 class="fw-bold text-white mb-4">
+        <i class="fa-solid fa-video me-2 text-teal"></i> Cameras
+    </h2>
+
+    @if (_cameras.Count == 0)
+    {
+        <div class="alert alert-secondary navy-light-bg text-white border-secondary">
+            No cameras are configured. Add camera entries to <code>appsettings.json</code> under the <code>Cameras</code> section.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var cam in _cameras)
+            {
+                var camStatus = _portStatuses.FirstOrDefault(p => p.PortNumber == cam.UniFiPortNumber);
+                <div class="col-12 col-xl-6">
+                    <div class="card navy-light-bg text-white border-secondary h-100">
+                        <div class="card-header d-flex align-items-center justify-content-between border-secondary py-3">
+                            <h5 class="mb-0 fw-bold">
+                                <i class="fa-solid fa-video text-teal me-2"></i>@cam.Name
+                            </h5>
+                            @if (cam.UniFiPortNumber.HasValue)
+                            {
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small text-gray">Power</span>
+                                    <div class="form-check form-switch mb-0">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               role="switch"
+                                               id="power-cam-@_cameras.IndexOf(cam)"
+                                               checked="@(camStatus?.PoeEnabled ?? false)"
+                                               disabled="@(!UniFi.IsConfigured || _loadingPorts)"
+                                               @onchange="e => TogglePowerAsync(cam, (bool)(e.Value ?? false))" />
+                                        <label class="form-check-label visually-hidden" for="power-cam-@_cameras.IndexOf(cam)">Power</label>
+                                    </div>
+                                    <span class="badge @(camStatus?.PoeEnabled == true ? "bg-success" : "bg-secondary")">
+                                        @(camStatus?.PoeEnabled == true ? "ON" : "OFF")
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body">
+                            @if (string.IsNullOrWhiteSpace(cam.IpAddress))
+                            {
+                                <p class="text-gray small">No IP address configured for VISCA control.</p>
+                            }
+                            else
+                            {
+                                <div class="row g-3">
+                                    <!-- PTZ Controls -->
+                                    <div class="col-auto">
+                                        <p class="text-gray small mb-2">Pan / Tilt</p>
+                                        <div class="ptz-grid">
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Up-Left"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.UpLeft)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                ↖
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Up"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Up)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                <i class="fa-solid fa-arrow-up"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Up-Right"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.UpRight)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                ↗
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Left"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Left)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                <i class="fa-solid fa-arrow-left"></i>
+                                            </button>
+                                            <button class="btn btn-outline-teal ptz-btn"
+                                                    title="Home"
+                                                    @onclick="() => HomeAsync(cam)">
+                                                <i class="fa-solid fa-house"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Right"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Right)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                <i class="fa-solid fa-arrow-right"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Down-Left"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.DownLeft)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                ↙
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Down"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.Down)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                <i class="fa-solid fa-arrow-down"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Down-Right"
+                                                    @onpointerdown="() => StartPanTiltAsync(cam, PanTiltDirection.DownRight)"
+                                                    @onpointerup="() => StopPanTiltAsync(cam)"
+                                                    @onpointercancel="() => StopPanTiltAsync(cam)">
+                                                ↘
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Zoom & Focus Controls -->
+                                    <div class="col-auto">
+                                        <p class="text-gray small mb-2">Zoom</p>
+                                        <div class="d-flex flex-column gap-1 mb-3">
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Zoom In"
+                                                    @onpointerdown="() => StartZoomAsync(cam, ZoomDirection.In)"
+                                                    @onpointerup="() => StopZoomAsync(cam)"
+                                                    @onpointercancel="() => StopZoomAsync(cam)">
+                                                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Zoom Out"
+                                                    @onpointerdown="() => StartZoomAsync(cam, ZoomDirection.Out)"
+                                                    @onpointerup="() => StopZoomAsync(cam)"
+                                                    @onpointercancel="() => StopZoomAsync(cam)">
+                                                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                                            </button>
+                                        </div>
+
+                                        <p class="text-gray small mb-2">Focus</p>
+                                        <div class="d-flex flex-column gap-1">
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Focus Far"
+                                                    @onpointerdown="() => StartFocusAsync(cam, FocusDirection.Far)"
+                                                    @onpointerup="() => StopFocusAsync(cam)"
+                                                    @onpointercancel="() => StopFocusAsync(cam)">
+                                                <i class="fa-solid fa-circle-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary ptz-btn"
+                                                    title="Focus Near"
+                                                    @onpointerdown="() => StartFocusAsync(cam, FocusDirection.Near)"
+                                                    @onpointerup="() => StopFocusAsync(cam)"
+                                                    @onpointercancel="() => StopFocusAsync(cam)">
+                                                <i class="fa-solid fa-circle-minus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-teal ptz-btn"
+                                                    title="Auto Focus"
+                                                    @onclick="() => AutoFocusAsync(cam)">
+                                                <i class="fa-solid fa-camera"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Presets -->
+                                    <div class="col">
+                                        <p class="text-gray small mb-2">Presets</p>
+                                        <div class="preset-grid">
+                                            @for (int i = 0; i < cam.NumberOfPresets; i++)
+                                            {
+                                                var presetIndex = i;
+                                                <div class="d-flex gap-1 mb-1">
+                                                    <button class="btn btn-outline-teal flex-grow-1 preset-btn"
+                                                            title="Recall Preset @(presetIndex + 1)"
+                                                            @onclick="() => RecallPresetAsync(cam, presetIndex)">
+                                                        @(presetIndex + 1)
+                                                    </button>
+                                                    <button class="btn btn-outline-secondary preset-save-btn"
+                                                            title="Save Preset @(presetIndex + 1)"
+                                                            @onclick="() => SavePresetAsync(cam, presetIndex)">
+                                                        <i class="fa-solid fa-floppy-disk"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    {
+        <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div class="toast show align-items-center text-white navy-light-bg border-secondary" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">@_statusMessage</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => _statusMessage = null"></button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    private List<CameraInfo> _cameras = [];
+    private List<PortStatus> _portStatuses = [];
+    private bool _loadingPorts;
+    private string? _statusMessage;
 
+    protected override async Task OnInitializedAsync()
+    {
+        _cameras = Configuration.GetSection("Cameras").Get<List<CameraInfo>>() ?? [];
+        await RefreshPortStatusesAsync();
+    }
+
+    private async Task RefreshPortStatusesAsync()
+    {
+        if (!UniFi.IsConfigured)
+        {
+            return;
+        }
+
+        _loadingPorts = true;
+        StateHasChanged();
+        try
+        {
+            _portStatuses = await UniFi.GetAllPortsStatusAsync();
+        }
+        finally
+        {
+            _loadingPorts = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TogglePowerAsync(CameraInfo cam, bool enabled)
+    {
+        if (!cam.UniFiPortNumber.HasValue)
+        {
+            return;
+        }
+
+        var success = await UniFi.SetPortStateAsync(cam.UniFiPortNumber.Value, enabled);
+        if (success)
+        {
+            ShowStatus($"{cam.Name} powered {(enabled ? "on" : "off")}");
+            await RefreshPortStatusesAsync();
+        }
+        else
+        {
+            ShowStatus($"Failed to change power for {cam.Name}");
+        }
+    }
+
+    private Task StartPanTiltAsync(CameraInfo cam, PanTiltDirection direction)
+        => Visca.PanTiltAsync(cam.IpAddress, cam.ViscaPort, direction, cam.PanSpeed, cam.TiltSpeed);
+
+    private Task StopPanTiltAsync(CameraInfo cam)
+        => Visca.PanTiltStopAsync(cam.IpAddress, cam.ViscaPort);
+
+    private Task StartZoomAsync(CameraInfo cam, ZoomDirection direction)
+        => Visca.ZoomAsync(cam.IpAddress, cam.ViscaPort, direction, cam.ZoomSpeed);
+
+    private Task StopZoomAsync(CameraInfo cam)
+        => Visca.ZoomStopAsync(cam.IpAddress, cam.ViscaPort);
+
+    private Task StartFocusAsync(CameraInfo cam, FocusDirection direction)
+        => Visca.FocusAsync(cam.IpAddress, cam.ViscaPort, direction);
+
+    private Task StopFocusAsync(CameraInfo cam)
+        => Visca.FocusStopAsync(cam.IpAddress, cam.ViscaPort);
+
+    private Task AutoFocusAsync(CameraInfo cam)
+        => Visca.FocusAutoAsync(cam.IpAddress, cam.ViscaPort);
+
+    private Task HomeAsync(CameraInfo cam)
+        => Visca.HomeAsync(cam.IpAddress, cam.ViscaPort);
+
+    private async Task RecallPresetAsync(CameraInfo cam, int presetIndex)
+    {
+        var ok = await Visca.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        ShowStatus(ok
+            ? $"{cam.Name} – recalled preset {presetIndex + 1}"
+            : $"{cam.Name} – failed to recall preset {presetIndex + 1}");
+    }
+
+    private async Task SavePresetAsync(CameraInfo cam, int presetIndex)
+    {
+        var ok = await Visca.SetPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        ShowStatus(ok
+            ? $"{cam.Name} – saved preset {presetIndex + 1}"
+            : $"{cam.Name} – failed to save preset {presetIndex + 1}");
+    }
+
+    private CancellationTokenSource? _statusCts;
+
+    private void ShowStatus(string message)
+    {
+        _statusCts?.Cancel();
+        _statusCts = new CancellationTokenSource();
+        _statusMessage = message;
+        StateHasChanged();
+        _ = DismissStatusAfterDelayAsync(_statusCts.Token);
+    }
+
+    private async Task DismissStatusAfterDelayAsync(CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(3000, ct);
+            _statusMessage = null;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Superseded by a newer status message
+        }
+    }
 }

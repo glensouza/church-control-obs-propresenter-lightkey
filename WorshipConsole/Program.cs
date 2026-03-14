@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WorshipConsole.Components;
 using WorshipConsole.Database;
+using WorshipConsole.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,11 @@ if (builder.Environment.IsDevelopment())
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton<UniFiService>();
+builder.Services.AddSingleton<ViscaService>();
+builder.Services.AddScoped<ObsWebSocketService>();
+builder.Services.AddHttpClient<PcoApiService>();
 
 var app = builder.Build();
 
