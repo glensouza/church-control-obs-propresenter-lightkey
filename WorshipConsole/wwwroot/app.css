@@ -150,3 +150,44 @@ h1:focus {
 .footer-link:hover {
     color: var(--tech-teal) !important;
 }
+
+/* --- Pageant Pages --- */
+.bg-teal {
+    background-color: var(--tech-teal);
+}
+
+.border-teal {
+    border-color: var(--tech-teal) !important;
+}
+
+.script-card {
+    transition: border-color 0.2s ease;
+}
+
+.script-card:hover {
+    border-color: var(--tech-teal) !important;
+}
+
+.script-nav-btn {
+    background: transparent;
+    color: #fff;
+    transition: background 0.2s ease;
+}
+
+.script-nav-btn:hover {
+    background: rgba(46, 156, 202, 0.1);
+    color: #fff;
+}
+
+.active-scene {
+    background: rgba(46, 156, 202, 0.2) !important;
+    border-left: 3px solid var(--tech-teal) !important;
+}
+
+.alert-obs {
+    background: rgba(46, 156, 202, 0.15);
+    border: 1px solid var(--tech-teal);
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}

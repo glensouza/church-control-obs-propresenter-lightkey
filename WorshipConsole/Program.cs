@@ -1,6 +1,12 @@
+using Microsoft.EntityFrameworkCore;
 using WorshipConsole.Components;
+using WorshipConsole.Database;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string connectionString = builder.Configuration.GetConnectionString("PageantDb") ?? "Data Source=pageant.db";
+builder.Services.AddDbContextFactory<PageantDb>(options => options.UseSqlite(connectionString))
+    .AddDatabaseDeveloperPageExceptionFilter();
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -19,6 +25,13 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
+
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<PageantDb>>();
+    await using var db = await dbFactory.CreateDbContextAsync();
+    await db.Database.EnsureCreatedAsync();
+}
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

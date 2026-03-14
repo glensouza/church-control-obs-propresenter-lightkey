@@ -1,7 +1,213 @@
 ﻿@page "/pageant/lights"
+@using Microsoft.EntityFrameworkCore
+@using WorshipConsole.Database
+@using WorshipConsole.Models
+@inject IDbContextFactory<PageantDb> DbFactory
+@rendermode InteractiveServer
 
-<h3>Pageant Lights</h3>
+<PageTitle>Worship Console | Pageant Lights</PageTitle>
+
+<div class="container-fluid py-4 px-4">
+    <div class="d-flex align-items-center mb-4">
+        <i class="fa-solid fa-lightbulb text-teal me-3 fs-3"></i>
+        <h1 class="fw-bold mb-0">Pageant Lights</h1>
+    </div>
+
+    @if (scripts == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-teal" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-gray mt-3">Loading scripts...</p>
+        </div>
+    }
+    else if (!scripts.Any())
+    {
+        <div class="card navy-light-bg text-white border-secondary p-5 text-center">
+            <i class="fa-solid fa-lightbulb display-3 text-teal mb-3"></i>
+            <h3 class="fw-bold">No Scripts Found</h3>
+            <p class="text-gray mb-0">No pageant script entries have been added yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Navigation panel -->
+            <div class="col-lg-3">
+                <div class="card navy-light-bg text-white border-secondary h-100">
+                    <div class="card-header border-secondary">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="fa-solid fa-list-ol text-teal me-2"></i>Script Navigation
+                        </h6>
+                    </div>
+                    <div class="card-body p-0" style="overflow-y: auto; max-height: 75vh;">
+                        @foreach (var script in scripts)
+                        {
+                            <button class="btn w-100 text-start px-3 py-2 rounded-0 border-0 border-bottom border-secondary script-nav-btn @(currentScript?.Id == script.Id ? "active-scene" : "")"
+                                    @onclick="() => SelectScene(script)">
+                                <div class="small text-teal">@script.Act</div>
+                                <div class="fw-semibold">@script.Scene</div>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main display -->
+            <div class="col-lg-9">
+                @if (currentScript == null)
+                {
+                    <div class="card navy-light-bg text-white border-secondary p-5 text-center">
+                        <i class="fa-solid fa-hand-pointer display-3 text-teal mb-3"></i>
+                        <h4 class="fw-bold">Select a Scene</h4>
+                        <p class="text-gray">Click a scene from the navigation panel to view lighting cues.</p>
+                    </div>
+                }
+                else
+                {
+                    <!-- Scene header -->
+                    <div class="card navy-light-bg text-white border-secondary mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0">
+                                    <span class="badge bg-teal text-dark me-2">@currentScript.Act</span>
+                                    @currentScript.Scene
+                                </h5>
+                                <span class="text-gray small">
+                                    <i class="fa-regular fa-clock me-1"></i>@currentScript.SceneLength sec
+                                </span>
+                            </div>
+                            <div class="bg-dark p-3 rounded border border-secondary">
+                                <p class="mb-0 text-gray">@currentScript.Text</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lighting Cues -->
+                    <div class="row g-3 mb-4">
+                        @if (!string.IsNullOrEmpty(currentScript.StageLightScene))
+                        {
+                            <div class="col-md-6">
+                                <div class="card navy-light-bg text-white border-secondary h-100">
+                                    <div class="card-header border-secondary text-center">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fa-solid fa-masks-theater text-teal me-2"></i>Stage Light Scene
+                                        </h6>
+                                    </div>
+                                    <div class="card-body text-center d-flex align-items-center justify-content-center">
+                                        <div class="fs-3 fw-bold">@currentScript.StageLightScene</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(currentScript.HouseLights))
+                        {
+                            <div class="col-md-6">
+                                <div class="card navy-light-bg text-white border-secondary h-100">
+                                    <div class="card-header border-secondary text-center">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fa-solid fa-building text-teal me-2"></i>House Lights
+                                        </h6>
+                                    </div>
+                                    <div class="card-body text-center d-flex align-items-center justify-content-center">
+                                        <div class="fs-3 fw-bold">@currentScript.HouseLights</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(currentScript.SpotlightLeft))
+                        {
+                            <div class="col-md-6">
+                                <div class="card navy-light-bg text-white border-secondary h-100">
+                                    <div class="card-header border-secondary text-center">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fa-solid fa-arrow-left text-teal me-1"></i>
+                                            <i class="fa-solid fa-circle-dot text-teal me-2"></i>Spotlight Left
+                                        </h6>
+                                    </div>
+                                    <div class="card-body text-center d-flex align-items-center justify-content-center">
+                                        <div class="fs-3 fw-bold">@currentScript.SpotlightLeft</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(currentScript.SpotlightRight))
+                        {
+                            <div class="col-md-6">
+                                <div class="card navy-light-bg text-white border-secondary h-100">
+                                    <div class="card-header border-secondary text-center">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fa-solid fa-circle-dot text-teal me-1"></i>
+                                            <i class="fa-solid fa-arrow-right text-teal me-2"></i>Spotlight Right
+                                        </h6>
+                                    </div>
+                                    <div class="card-body text-center d-flex align-items-center justify-content-center">
+                                        <div class="fs-3 fw-bold">@currentScript.SpotlightRight</div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(currentScript.LightingNotes))
+                    {
+                        <div class="card navy-light-bg text-white border-secondary mb-4">
+                            <div class="card-header border-secondary">
+                                <h6 class="mb-0 fw-bold">
+                                    <i class="fa-solid fa-note-sticky text-teal me-2"></i>Lighting Notes
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">@currentScript.LightingNotes</p>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Next / Prev navigation -->
+                    <div class="d-flex justify-content-between gap-3">
+                        <button class="btn btn-outline-teal px-4" @onclick="PreviousScene" disabled="@(currentIndex <= 0)">
+                            <i class="fa-solid fa-chevron-left me-2"></i>Previous Scene
+                        </button>
+                        <button class="btn btn-teal-glow px-4" @onclick="NextScene" disabled="@(currentIndex >= scripts.Count - 1)">
+                            Next Scene<i class="fa-solid fa-chevron-right ms-2"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
 
 @code {
+    private List<Scripts>? scripts;
+    private Scripts? currentScript;
+    private int currentIndex = -1;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await using var db = await DbFactory.CreateDbContextAsync();
+        scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
+    }
+
+    private void SelectScene(Scripts script)
+    {
+        currentScript = script;
+        currentIndex = scripts!.IndexOf(script);
+    }
+
+    private void NextScene()
+    {
+        if (scripts == null || currentIndex >= scripts.Count - 1) return;
+        currentIndex++;
+        currentScript = scripts[currentIndex];
+    }
+
+    private void PreviousScene()
+    {
+        if (scripts == null || currentIndex <= 0) return;
+        currentIndex--;
+        currentScript = scripts[currentIndex];
+    }
 }
+
