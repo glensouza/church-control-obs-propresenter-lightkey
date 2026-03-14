@@ -4,9 +4,14 @@ using WorshipConsole.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
-string connectionString = builder.Configuration.GetConnectionString("PageantDb") ?? "Data Source=pageant.db";
-builder.Services.AddDbContextFactory<PageantDb>(options => options.UseSqlite(connectionString))
-    .AddDatabaseDeveloperPageExceptionFilter();
+string defaultDbPath = Path.Combine(builder.Environment.ContentRootPath, "pageant.db");
+string connectionString = builder.Configuration.GetConnectionString("PageantDb") ?? $"Data Source={defaultDbPath}";
+builder.Services.AddDbContextFactory<PageantDb>(options => options.UseSqlite(connectionString));
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+}
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -30,7 +35,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<PageantDb>>();
     await using var db = await dbFactory.CreateDbContextAsync();
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync();
 }
 
 app.MapStaticAssets();

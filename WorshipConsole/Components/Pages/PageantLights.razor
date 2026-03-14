@@ -180,8 +180,8 @@
 </div>
 
 @code {
-    private List<Scripts>? scripts;
-    private Scripts? currentScript;
+    private List<Script>? scripts;
+    private Script? currentScript;
     private int currentIndex = -1;
 
     protected override async Task OnInitializedAsync()
@@ -190,7 +190,7 @@
         scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
     }
 
-    private void SelectScene(Scripts script)
+    private void SelectScene(Script script)
     {
         currentScript = script;
         currentIndex = scripts!.IndexOf(script);

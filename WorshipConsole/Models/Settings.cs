@@ -7,11 +7,11 @@ public class Settings
     public int Id { get; set; }
 
     [Required]
-    public string SettingType { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
 
     [Required]
-    public string SettingId { get; set; } = string.Empty;
+    public string Key { get; set; } = string.Empty;
 
     [Required]
-    public string Setting { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
 }

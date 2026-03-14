@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WorshipConsole.Models;
 
-public class Scripts
+public class Script
 {
     public int Id { get; set; }
 
@@ -24,23 +24,22 @@ public class Scripts
     [Required]
     public string Camera1Action { get; set; } = string.Empty;
 
-    public string Camera1Position { get; set; } = string.Empty;
+    public string? Camera1Position { get; set; }
 
     [Required]
     public string Camera2Action { get; set; } = string.Empty;
 
-    public string Camera2Position { get; set; } = string.Empty;
+    public string? Camera2Position { get; set; }
 
     [Required]
     public string Camera3Action { get; set; } = string.Empty;
 
-    public string Camera3Position { get; set; } = string.Empty;
+    public string? Camera3Position { get; set; }
 
-    public string NavClass { get; set; } = string.Empty;
-
-    public string StageLightScene { get; set; } = string.Empty;
-    public string SpotlightLeft { get; set; } = string.Empty;
-    public string SpotlightRight { get; set; } = string.Empty;
-    public string HouseLights { get; set; } = string.Empty;
-    public string LightingNotes { get; set; } = string.Empty;
+    public string? StageLightScene { get; set; }
+    public string? SpotlightLeft { get; set; }
+    public string? SpotlightRight { get; set; }
+    public string? HouseLights { get; set; }
+    public string? LightingNotes { get; set; }
 }
+
