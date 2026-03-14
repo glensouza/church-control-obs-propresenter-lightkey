@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddScoped<ObsWebSocketService>();
 builder.Services.AddHttpClient<PcoApiService>();
 
 var app = builder.Build();

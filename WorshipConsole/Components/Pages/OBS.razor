@@ -1,9 +1,311 @@
-﻿@page "/obs"
+@page "/obs"
+@rendermode InteractiveServer
+@inject ObsWebSocketService OBSService
+@inject IConfiguration Configuration
+@implements IAsyncDisposable
 
-<h3>OBS</h3>
+<PageTitle>OBS Control | Worship Console</PageTitle>
 
-<p>TODO</p>
+<div class="container-fluid py-4 px-4">
+
+    @* ── Header ── *@
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <img src="obs.png" style="height:40px;" alt="OBS" />
+            <h2 class="fw-bold mb-0">OBS Control</h2>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            @if (OBSService.IsConnected)
+            {
+                <span class="badge bg-success fs-6">● Connected</span>
+                <button class="btn btn-sm btn-outline-danger" @onclick="DisconnectAsync">Disconnect</button>
+            }
+            else if (OBSService.IsConnecting)
+            {
+                <span class="badge bg-warning text-dark fs-6">
+                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>Connecting…
+                </span>
+            }
+            else if (OBSService.LastError is not null)
+            {
+                <span class="badge bg-danger fs-6">● Error</span>
+                <button class="btn btn-sm btn-outline-teal" @onclick="ConnectAsync">Reconnect</button>
+            }
+            else
+            {
+                <span class="badge bg-secondary fs-6">○ Disconnected</span>
+                <button class="btn btn-sm btn-outline-teal" @onclick="ConnectAsync">Connect</button>
+            }
+        </div>
+    </div>
+
+    @* ── Error banner ── *@
+    @if (OBSService.LastError is not null && !OBSService.IsConnected && !OBSService.IsConnecting)
+    {
+        <div class="alert alert-danger d-flex align-items-center gap-2">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>@OBSService.LastError</span>
+        </div>
+    }
+
+    @* ── Not-connected placeholder ── *@
+    @if (!OBSService.IsConnected)
+    {
+        <div class="text-center py-5">
+            <img src="obs.png" style="height:120px;opacity:.4;" alt="OBS" class="mb-4" />
+            <h4 class="text-gray">
+                @(OBSService.IsConnecting ? "Connecting to OBS…" : "Not connected to OBS")
+            </h4>
+            <p class="text-gray">
+                Configured host: <code class="text-teal">@_obsHost:@_obsPort</code>
+            </p>
+            @if (OBSService.IsConnecting)
+            {
+                <div class="spinner-border text-teal mt-2" role="status">
+                    <span class="visually-hidden">Connecting…</span>
+                </div>
+            }
+        </div>
+    }
+
+    @* ── Connected UI ── *@
+    @if (OBSService.IsConnected)
+    {
+        @* ── Toolbar: Profile · Scene Collection · Studio Mode ── *@
+        <div class="d-flex flex-wrap align-items-end gap-4 mb-4">
+
+            @* Profile *@
+            @if (OBSService.Profiles.Count > 0)
+            {
+                <div>
+                    <label class="form-label text-gray small mb-1">Profile</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            @onchange="ProfileChangedAsync">
+                        @foreach (var p in OBSService.Profiles)
+                        {
+                            <option value="@p" selected="@(OBSService.CurrentProfile == p)">@p</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @* Scene Collection *@
+            @if (OBSService.SceneCollections.Count > 0)
+            {
+                <div>
+                    <label class="form-label text-gray small mb-1">Scene Collection</label>
+                    <select class="form-select form-select-sm bg-dark text-white border-secondary"
+                            @onchange="SceneCollectionChangedAsync">
+                        @foreach (var c in OBSService.SceneCollections)
+                        {
+                            <option value="@c" selected="@(OBSService.CurrentSceneCollection == c)">@c</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @* Studio Mode toggle *@
+            <div class="form-check form-switch mb-1">
+                <input class="form-check-input" type="checkbox" id="studioSwitch" role="switch"
+                       checked="@OBSService.StudioMode"
+                       @onchange="StudioModeToggledAsync" />
+                <label class="form-check-label text-white" for="studioSwitch">Studio Mode</label>
+            </div>
+        </div>
+
+        @* ── Scenes ── *@
+        @if (OBSService.StudioMode)
+        {
+            <div class="row g-4 mb-4">
+                @* Preview column *@
+                <div class="col-12 col-md-6">
+                    <h5 class="text-teal mb-3">
+                        <i class="fa-solid fa-eye me-1"></i> Preview
+                    </h5>
+                    <div class="row g-2">
+                        @foreach (var scene in OBSService.Scenes)
+                        {
+                            <div class="col-6 col-lg-4">
+                                <button class="btn w-100 py-3 scene-btn @(OBSService.CurrentPreviewScene == scene.SceneName ? "btn-teal-glow" : "btn-outline-secondary")"
+                                        @onclick="() => SwitchPreviewSceneAsync(scene.SceneName)">
+                                    @scene.SceneName
+                                </button>
+                            </div>
+                        }
+                    </div>
+                    <div class="mt-3">
+                        <button class="btn btn-warning w-100 fw-bold" @onclick="TransitionToProgramAsync">
+                            ⇒ Transition to Program
+                        </button>
+                    </div>
+                </div>
+
+                @* Program column *@
+                <div class="col-12 col-md-6">
+                    <h5 class="text-danger mb-3">
+                        <i class="fa-solid fa-circle-dot me-1"></i> Program
+                    </h5>
+                    <div class="row g-2">
+                        @foreach (var scene in OBSService.Scenes)
+                        {
+                            <div class="col-6 col-lg-4">
+                                <button class="btn w-100 py-3 scene-btn @(OBSService.CurrentProgramScene == scene.SceneName ? "btn-danger" : "btn-outline-danger")"
+                                        @onclick="() => SwitchProgramSceneAsync(scene.SceneName)">
+                                    @scene.SceneName
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="mb-4">
+                <h5 class="text-gray mb-3">Scenes</h5>
+                <div class="row g-2">
+                    @foreach (var scene in OBSService.Scenes)
+                    {
+                        <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                            <button class="btn w-100 py-3 scene-btn @(OBSService.CurrentProgramScene == scene.SceneName ? "btn-teal-glow" : "btn-outline-secondary")"
+                                    @onclick="() => SwitchSceneAsync(scene.SceneName)">
+                                @scene.SceneName
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── Output controls ── *@
+        <div class="d-flex flex-wrap gap-3 mt-2">
+
+            @* Stream *@
+            <button class="btn btn-lg fw-bold @(OBSService.Streaming ? "btn-danger" : "btn-outline-teal")"
+                    @onclick="ToggleStreamAsync">
+                @if (OBSService.Streaming)
+                {
+                    <i class="fa-solid fa-stop me-1"></i><text>Stop Stream</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-circle-play me-1"></i><text>Start Stream</text>
+                }
+            </button>
+
+            @* Record *@
+            <button class="btn btn-lg fw-bold @(OBSService.Recording ? "btn-danger" : "btn-outline-secondary")"
+                    @onclick="ToggleRecordAsync">
+                @if (OBSService.Recording)
+                {
+                    <i class="fa-solid fa-stop me-1"></i><text>Stop Recording</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-circle me-1"></i><text>Start Recording</text>
+                }
+            </button>
+
+            @* Virtual Camera *@
+            <button class="btn btn-lg fw-bold @(OBSService.VirtualCam ? "btn-warning" : "btn-outline-secondary")"
+                    @onclick="ToggleVirtualCamAsync">
+                @if (OBSService.VirtualCam)
+                {
+                    <i class="fa-solid fa-video-slash me-1"></i><text>Stop Virtual Camera</text>
+                }
+                else
+                {
+                    <i class="fa-solid fa-video me-1"></i><text>Start Virtual Camera</text>
+                }
+            </button>
+
+            @* Replay Buffer *@
+            @if (OBSService.ReplayBuffer)
+            {
+                <button class="btn btn-lg fw-bold btn-success" @onclick="SaveReplayBufferAsync">
+                    <i class="fa-solid fa-floppy-disk me-1"></i>Save Replay
+                </button>
+                <button class="btn btn-lg fw-bold btn-outline-danger" @onclick="StopReplayBufferAsync">
+                    <i class="fa-solid fa-stop me-1"></i>Stop Buffer
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-lg fw-bold btn-outline-secondary" @onclick="StartReplayBufferAsync">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Start Replay Buffer
+                </button>
+            }
+        </div>
+    }
+</div>
 
 @code {
+    // Config read for display only — password is never surfaced here
+    private string _obsHost = "127.0.0.1";
+    private int _obsPort = 4455;
 
+    protected override void OnInitialized()
+    {
+        _obsHost = Configuration["OBS:Host"] ?? "127.0.0.1";
+        _obsPort = int.TryParse(Configuration["OBS:Port"], out var p) ? p : 4455;
+        OBSService.StateChanged += OnObsStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private void OnObsStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ── Connection ──
+
+    private Task ConnectAsync() => OBSService.ConnectAsync();
+    private Task DisconnectAsync() => OBSService.DisconnectAsync();
+
+    // ── Scene actions ──
+
+    private Task SwitchSceneAsync(string name) => OBSService.SwitchSceneAsync(name);
+    private Task SwitchPreviewSceneAsync(string name) => OBSService.SwitchPreviewSceneAsync(name);
+    private Task SwitchProgramSceneAsync(string name) => OBSService.SwitchSceneAsync(name);
+    private Task TransitionToProgramAsync() => OBSService.TransitionToProgramAsync();
+
+    // ── Output actions ──
+
+    private Task ToggleStreamAsync() =>
+        OBSService.Streaming ? OBSService.StopStreamAsync() : OBSService.StartStreamAsync();
+
+    private Task ToggleRecordAsync() =>
+        OBSService.Recording ? OBSService.StopRecordAsync() : OBSService.StartRecordAsync();
+
+    private Task ToggleVirtualCamAsync() =>
+        OBSService.VirtualCam ? OBSService.StopVirtualCamAsync() : OBSService.StartVirtualCamAsync();
+
+    private Task StartReplayBufferAsync() => OBSService.StartReplayBufferAsync();
+    private Task StopReplayBufferAsync() => OBSService.StopReplayBufferAsync();
+    private Task SaveReplayBufferAsync() => OBSService.SaveReplayBufferAsync();
+
+    // ── Settings actions ──
+
+    private Task StudioModeToggledAsync() => OBSService.SetStudioModeAsync(!OBSService.StudioMode);
+
+    private Task ProfileChangedAsync(ChangeEventArgs e) =>
+        OBSService.SetProfileAsync(e.Value?.ToString() ?? string.Empty);
+
+    private Task SceneCollectionChangedAsync(ChangeEventArgs e) =>
+        OBSService.SetSceneCollectionAsync(e.Value?.ToString() ?? string.Empty);
+
+    public async ValueTask DisposeAsync()
+    {
+        OBSService.StateChanged -= OnObsStateChanged;
+        await OBSService.DisposeAsync();
+    }
 }
+
