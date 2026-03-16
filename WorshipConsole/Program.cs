@@ -3,7 +3,7 @@ using WorshipConsole.Components;
 using WorshipConsole.Database;
 using WorshipConsole.Services;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 string defaultDbPath = Path.Combine(builder.Environment.ContentRootPath, "pageant.db");
 string connectionString = builder.Configuration.GetConnectionString("PageantDb") ?? $"Data Source={defaultDbPath}";
@@ -23,7 +23,7 @@ builder.Services.AddSingleton<ViscaService>();
 builder.Services.AddScoped<ObsWebSocketService>();
 builder.Services.AddHttpClient<PcoApiService>();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -37,10 +37,10 @@ app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
-await using (var scope = app.Services.CreateAsyncScope())
+await using (AsyncServiceScope scope = app.Services.CreateAsyncScope())
 {
-    var dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<PageantDb>>();
-    await using var db = await dbFactory.CreateDbContextAsync();
+    IDbContextFactory<PageantDb> dbFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<PageantDb>>();
+    await using PageantDb db = await dbFactory.CreateDbContextAsync();
     await db.Database.MigrateAsync();
 }
 

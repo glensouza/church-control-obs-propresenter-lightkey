@@ -1,11 +1,10 @@
 ﻿@page "/pageant"
 @using Microsoft.EntityFrameworkCore
 @using WorshipConsole.Database
-@using WorshipConsole.Models
 @inject IDbContextFactory<PageantDb> DbFactory
 @rendermode InteractiveServer
 
-<PageTitle>Worship Console | Pageant</PageTitle>
+<PageTitle>Pageant | Worship Console</PageTitle>
 
 <div class="container py-4">
     <div class="d-flex align-items-center mb-4">
@@ -39,7 +38,7 @@
             <div class="col-auto">
                 <select class="form-select bg-dark text-white border-secondary" @onchange="OnActFilterChanged">
                     <option value="">All Acts</option>
-                    @foreach (var act in acts)
+                    @foreach (string act in Acts)
                     {
                         <option value="@act">@act</option>
                     }
@@ -47,13 +46,13 @@
             </div>
             <div class="col-auto ms-auto">
                 <span class="badge bg-teal text-dark fw-semibold px-3 py-2">
-                    @filteredScripts.Count() scenes
+                    @FilteredScripts.Count() scenes
                 </span>
             </div>
         </div>
 
         <div class="row g-3">
-            @foreach (var script in filteredScripts)
+            @foreach (Script script in FilteredScripts)
             {
                 <div class="col-12">
                     <div class="card navy-light-bg text-white border-secondary script-card @(selectedScript?.Id == script.Id ? "border-teal" : "")"
@@ -178,8 +177,8 @@
     private List<Script>? scripts;
     private Script? selectedScript;
     private string actFilter = string.Empty;
-    private IEnumerable<string> acts => scripts?.Select(s => s.Act).Distinct().Order() ?? Enumerable.Empty<string>();
-    private IEnumerable<Script> filteredScripts =>
+    private IEnumerable<string> Acts => scripts?.Select(s => s.Act).Distinct().Order() ?? Enumerable.Empty<string>();
+    private IEnumerable<Script> FilteredScripts =>
         scripts == null ? [] :
         string.IsNullOrEmpty(actFilter)
             ? scripts
@@ -187,7 +186,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await using var db = await DbFactory.CreateDbContextAsync();
+        await using PageantDb db = await DbFactory.CreateDbContextAsync();
         scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
     }
 

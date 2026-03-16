@@ -1,21 +1,18 @@
 @page "/cameras"
 @rendermode InteractiveServer
 
-@using WorshipConsole.Models
-@using WorshipConsole.Services
-
 @inject IConfiguration Configuration
 @inject UniFiService UniFi
 @inject ViscaService Visca
 
-<PageTitle>Cameras</PageTitle>
+<PageTitle>Livestream Cameras | Worship Console</PageTitle>
 
 <div class="container py-4">
     <h2 class="fw-bold text-white mb-4">
         <i class="fa-solid fa-video me-2 text-teal"></i> Cameras
     </h2>
 
-    @if (_cameras.Count == 0)
+    @if (cameras.Count == 0)
     {
         <div class="alert alert-secondary navy-light-bg text-white border-secondary">
             No cameras are configured. Add camera entries to <code>appsettings.json</code> under the <code>Cameras</code> section.
@@ -24,9 +21,9 @@
     else
     {
         <div class="row g-4">
-            @foreach (var cam in _cameras)
+            @foreach (CameraInfo cam in cameras)
             {
-                var camStatus = _portStatuses.FirstOrDefault(p => p.PortNumber == cam.UniFiPortNumber);
+                PortStatus? camStatus = portStatuses.FirstOrDefault(p => p.PortNumber == cam.UniFiPortNumber);
                 <div class="col-12 col-xl-6">
                     <div class="card navy-light-bg text-white border-secondary h-100">
                         <div class="card-header d-flex align-items-center justify-content-between border-secondary py-3">
@@ -41,11 +38,11 @@
                                         <input class="form-check-input"
                                                type="checkbox"
                                                role="switch"
-                                               id="power-cam-@_cameras.IndexOf(cam)"
+                                               id="power-cam-@cameras.IndexOf(cam)"
                                                checked="@(camStatus?.PoeEnabled ?? false)"
-                                               disabled="@(!UniFi.IsConfigured || _loadingPorts)"
+                                               disabled="@(!UniFi.IsConfigured || loadingPorts)"
                                                @onchange="e => TogglePowerAsync(cam, (bool)(e.Value ?? false))" />
-                                        <label class="form-check-label visually-hidden" for="power-cam-@_cameras.IndexOf(cam)">Power</label>
+                                        <label class="form-check-label visually-hidden" for="power-cam-@cameras.IndexOf(cam)">Power</label>
                                     </div>
                                     <span class="badge @(camStatus?.PoeEnabled == true ? "bg-success" : "bg-secondary")">
                                         @(camStatus?.PoeEnabled == true ? "ON" : "OFF")
@@ -179,7 +176,7 @@
                                         <div class="preset-grid">
                                             @for (int i = 0; i < cam.NumberOfPresets; i++)
                                             {
-                                                var presetIndex = i;
+                                                int presetIndex = i;
                                                 <div class="d-flex gap-1 mb-1">
                                                     <button class="btn btn-outline-teal flex-grow-1 preset-btn"
                                                             title="Recall Preset @(presetIndex + 1)"
@@ -204,13 +201,13 @@
         </div>
     }
 
-    @if (!string.IsNullOrWhiteSpace(_statusMessage))
+    @if (!string.IsNullOrWhiteSpace(statusMessage))
     {
         <div class="toast-container position-fixed bottom-0 end-0 p-3">
             <div class="toast show align-items-center text-white navy-light-bg border-secondary" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="d-flex">
-                    <div class="toast-body">@_statusMessage</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => _statusMessage = null"></button>
+                    <div class="toast-body">@statusMessage</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" @onclick="() => statusMessage = null"></button>
                 </div>
             </div>
         </div>
@@ -218,14 +215,14 @@
 </div>
 
 @code {
-    private List<CameraInfo> _cameras = [];
-    private List<PortStatus> _portStatuses = [];
-    private bool _loadingPorts;
-    private string? _statusMessage;
+    private List<CameraInfo> cameras = [];
+    private List<PortStatus> portStatuses = [];
+    private bool loadingPorts;
+    private string? statusMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        _cameras = Configuration.GetSection("Cameras").Get<List<CameraInfo>>() ?? [];
+        cameras = Configuration.GetSection("Cameras").Get<List<CameraInfo>>() ?? [];
         await RefreshPortStatusesAsync();
     }
 
@@ -236,15 +233,15 @@
             return;
         }
 
-        _loadingPorts = true;
+        loadingPorts = true;
         StateHasChanged();
         try
         {
-            _portStatuses = await UniFi.GetAllPortsStatusAsync();
+            portStatuses = await UniFi.GetAllPortsStatusAsync();
         }
         finally
         {
-            _loadingPorts = false;
+            loadingPorts = false;
             StateHasChanged();
         }
     }
@@ -256,7 +253,7 @@
             return;
         }
 
-        var success = await UniFi.SetPortStateAsync(cam.UniFiPortNumber.Value, enabled);
+        bool success = await UniFi.SetPortStateAsync(cam.UniFiPortNumber.Value, enabled);
         if (success)
         {
             ShowStatus($"{cam.Name} powered {(enabled ? "on" : "off")}");
@@ -294,7 +291,7 @@
 
     private async Task RecallPresetAsync(CameraInfo cam, int presetIndex)
     {
-        var ok = await Visca.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        bool ok = await Visca.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
         ShowStatus(ok
             ? $"{cam.Name} – recalled preset {presetIndex + 1}"
             : $"{cam.Name} – failed to recall preset {presetIndex + 1}");
@@ -302,21 +299,21 @@
 
     private async Task SavePresetAsync(CameraInfo cam, int presetIndex)
     {
-        var ok = await Visca.SetPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
+        bool ok = await Visca.SetPresetAsync(cam.IpAddress, cam.ViscaPort, presetIndex);
         ShowStatus(ok
             ? $"{cam.Name} – saved preset {presetIndex + 1}"
             : $"{cam.Name} – failed to save preset {presetIndex + 1}");
     }
 
-    private CancellationTokenSource? _statusCts;
+    private CancellationTokenSource? statusCts;
 
     private void ShowStatus(string message)
     {
-        _statusCts?.Cancel();
-        _statusCts = new CancellationTokenSource();
-        _statusMessage = message;
+        statusCts?.Cancel();
+        statusCts = new CancellationTokenSource();
+        statusMessage = message;
         StateHasChanged();
-        _ = DismissStatusAfterDelayAsync(_statusCts.Token);
+        _ = DismissStatusAfterDelayAsync(statusCts.Token);
     }
 
     private async Task DismissStatusAfterDelayAsync(CancellationToken ct)
@@ -324,7 +321,7 @@
         try
         {
             await Task.Delay(3000, ct);
-            _statusMessage = null;
+            statusMessage = null;
             await InvokeAsync(StateHasChanged);
         }
         catch (OperationCanceledException)

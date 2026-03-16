@@ -17,16 +17,16 @@ namespace WorshipConsole.Services;
 public sealed class ObsWebSocketService : IAsyncDisposable
 {
     // ── Configuration ──
-    private readonly string _host;
-    private readonly int _port;
-    private readonly string _password;
+    private readonly string host;
+    private readonly int port;
+    private readonly string password;
 
     // ── WebSocket internals ──
-    private ClientWebSocket? _ws;
-    private CancellationTokenSource? _cts;
-    private Task? _receiveTask;
-    private int _requestCounter;
-    private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonNode?>> _pending = new();
+    private ClientWebSocket? ws;
+    private CancellationTokenSource? cts;
+    private Task? receiveTask;
+    private int requestCounter;
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonNode?>> pending = new();
 
     // ── Connection state ──
     public bool IsConnecting { get; private set; }
@@ -34,7 +34,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     public string? LastError { get; private set; }
 
     // ── OBS state ──
-    public List<OBSScene> Scenes { get; private set; } = [];
+    public List<ObsScene> Scenes { get; private set; } = [];
     public string CurrentProgramScene { get; private set; } = string.Empty;
     public string CurrentPreviewScene { get; private set; } = string.Empty;
     public bool Streaming { get; private set; }
@@ -52,98 +52,92 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
     public ObsWebSocketService(IConfiguration configuration)
     {
-        _host = configuration["OBS:Host"] ?? "127.0.0.1";
-        _port = int.TryParse(configuration["OBS:Port"], out var p) ? p : 4455;
-        _password = configuration["OBS:Password"] ?? string.Empty;
+        this.host = configuration["OBS:Host"] ?? "127.0.0.1";
+        this.port = int.TryParse(configuration["OBS:Port"], out int p) ? p : 4455;
+        this.password = configuration["OBS:Password"] ?? string.Empty;
     }
 
     // ── Public: connection ──
 
     public async Task ConnectAsync(CancellationToken ct = default)
     {
-        await CleanupAsync();
+        await this.CleanupAsync();
 
-        IsConnecting = true;
-        IsConnected = false;
-        LastError = null;
-        NotifyStateChanged();
+        this.IsConnecting = true;
+        this.IsConnected = false;
+        this.LastError = null;
+        this.NotifyStateChanged();
 
-        _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _ws = new ClientWebSocket();
+        this.cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        this.ws = new ClientWebSocket();
 
         try
         {
-            await _ws.ConnectAsync(new Uri($"ws://{_host}:{_port}"), _cts.Token);
-            _receiveTask = ReceiveLoopAsync(_cts.Token);
+            await this.ws.ConnectAsync(new Uri($"ws://{this.host}:{this.port}"), this.cts.Token);
+            this.receiveTask = this.ReceiveLoopAsync(this.cts.Token);
         }
         catch (Exception ex)
         {
-            IsConnecting = false;
-            LastError = $"Unable to connect to OBS at {_host}:{_port}. Ensure OBS is running and the WebSocket server is enabled. ({ex.Message})";
-            NotifyStateChanged();
+            this.IsConnecting = false;
+            this.LastError = $"Unable to connect to OBS at {this.host}:{this.port}. Ensure OBS is running and the WebSocket server is enabled. ({ex.Message})";
+            this.NotifyStateChanged();
         }
     }
 
     public async Task DisconnectAsync()
     {
-        await CleanupAsync();
-        IsConnected = false;
-        IsConnecting = false;
-        LastError = null;
-        NotifyStateChanged();
+        await this.CleanupAsync();
+        this.IsConnected = false;
+        this.IsConnecting = false;
+        this.LastError = null;
+        this.NotifyStateChanged();
     }
 
     // ── Public: scene actions ──
 
-    public Task SwitchSceneAsync(string name) =>
-        SendActionAsync("SetCurrentProgramScene", new JsonObject { ["sceneName"] = name });
+    public Task SwitchSceneAsync(string name) => this.SendActionAsync("SetCurrentProgramScene", new JsonObject { ["sceneName"] = name });
 
-    public Task SwitchPreviewSceneAsync(string name) =>
-        SendActionAsync("SetCurrentPreviewScene", new JsonObject { ["sceneName"] = name });
+    public Task SwitchPreviewSceneAsync(string name) => this.SendActionAsync("SetCurrentPreviewScene", new JsonObject { ["sceneName"] = name });
 
-    public Task TransitionToProgramAsync() =>
-        SendActionAsync("TriggerStudioModeTransition");
+    public Task TransitionToProgramAsync() => this.SendActionAsync("TriggerStudioModeTransition");
 
     // ── Public: output actions ──
 
-    public Task StartStreamAsync() => SendActionAsync("StartStream");
-    public Task StopStreamAsync() => SendActionAsync("StopStream");
-    public Task StartRecordAsync() => SendActionAsync("StartRecord");
-    public Task StopRecordAsync() => SendActionAsync("StopRecord");
-    public Task StartVirtualCamAsync() => SendActionAsync("StartVirtualCam");
-    public Task StopVirtualCamAsync() => SendActionAsync("StopVirtualCam");
-    public Task StartReplayBufferAsync() => SendActionAsync("StartReplayBuffer");
-    public Task StopReplayBufferAsync() => SendActionAsync("StopReplayBuffer");
-    public Task SaveReplayBufferAsync() => SendActionAsync("SaveReplayBuffer");
+    public Task StartStreamAsync() => this.SendActionAsync("StartStream");
+    public Task StopStreamAsync() => this.SendActionAsync("StopStream");
+    public Task StartRecordAsync() => this.SendActionAsync("StartRecord");
+    public Task StopRecordAsync() => this.SendActionAsync("StopRecord");
+    public Task StartVirtualCamAsync() => this.SendActionAsync("StartVirtualCam");
+    public Task StopVirtualCamAsync() => this.SendActionAsync("StopVirtualCam");
+    public Task StartReplayBufferAsync() => this.SendActionAsync("StartReplayBuffer");
+    public Task StopReplayBufferAsync() => this.SendActionAsync("StopReplayBuffer");
+    public Task SaveReplayBufferAsync() => this.SendActionAsync("SaveReplayBuffer");
 
     // ── Public: settings actions ──
 
-    public Task SetStudioModeAsync(bool enabled) =>
-        SendActionAsync("SetStudioModeEnabled", new JsonObject { ["studioModeEnabled"] = enabled });
+    public Task SetStudioModeAsync(bool enabled) => this.SendActionAsync("SetStudioModeEnabled", new JsonObject { ["studioModeEnabled"] = enabled });
 
-    public Task SetProfileAsync(string name) =>
-        SendActionAsync("SetCurrentProfile", new JsonObject { ["profileName"] = name });
+    public Task SetProfileAsync(string name) => this.SendActionAsync("SetCurrentProfile", new JsonObject { ["profileName"] = name });
 
-    public Task SetSceneCollectionAsync(string name) =>
-        SendActionAsync("SetCurrentSceneCollection", new JsonObject { ["sceneCollectionName"] = name });
+    public Task SetSceneCollectionAsync(string name) => this.SendActionAsync("SetCurrentSceneCollection", new JsonObject { ["sceneCollectionName"] = name });
 
     // ── Receive loop ──
 
     private async Task ReceiveLoopAsync(CancellationToken ct)
     {
-        var buffer = new byte[64 * 1024];
-        var sb = new StringBuilder();
-        var closedByServer = false;
+        byte[] buffer = new byte[64 * 1024];
+        StringBuilder sb = new();
+        bool closedByServer = false;
 
         try
         {
-            while (!ct.IsCancellationRequested && _ws?.State == WebSocketState.Open)
+            while (!ct.IsCancellationRequested && this.ws?.State == WebSocketState.Open)
             {
                 sb.Clear();
                 WebSocketReceiveResult result;
                 do
                 {
-                    result = await _ws.ReceiveAsync(buffer, ct);
+                    result = await this.ws.ReceiveAsync(buffer, ct);
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         closedByServer = true;
@@ -155,33 +149,35 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
                 if (closedByServer) break;
 
-                var json = JsonNode.Parse(sb.ToString());
+                JsonNode? json = JsonNode.Parse(sb.ToString());
                 if (json is null) continue;
 
-                var op = json["op"]?.GetValue<int>() ?? -1;
-                var data = json["d"];
+                int op = json["op"]?.GetValue<int>() ?? -1;
+                JsonNode? data = json["d"];
 
                 switch (op)
                 {
-                    case 0: await HandleHelloAsync(data, ct); break;
-                    case 2: await FetchInitialStateAsync(ct); break;
-                    case 5: HandleEvent(data); break;
-                    case 7: HandleResponse(data); break;
+                    case 0: await this.HandleHelloAsync(data, ct); break;
+                    case 2: await this.FetchInitialStateAsync(ct); break;
+                    case 5:
+                        this.HandleEvent(data); break;
+                    case 7:
+                        this.HandleResponse(data); break;
                 }
             }
         }
         catch (OperationCanceledException) { /* expected on disconnect */ }
         catch (Exception ex)
         {
-            LastError = $"OBS connection lost: {ex.Message}";
+            this.LastError = $"OBS connection lost: {ex.Message}";
         }
 
-        if (IsConnected || IsConnecting)
+        if (this.IsConnected || this.IsConnecting)
         {
-            IsConnected = false;
-            IsConnecting = false;
-            LastError ??= "Connection closed.";
-            NotifyStateChanged();
+            this.IsConnected = false;
+            this.IsConnecting = false;
+            this.LastError ??= "Connection closed.";
+            this.NotifyStateChanged();
         }
     }
 
@@ -190,27 +186,27 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     private async Task HandleHelloAsync(JsonNode? data, CancellationToken ct)
     {
         string? authResponse = null;
-        var authentication = data?["authentication"];
+        JsonNode? authentication = data?["authentication"];
 
         if (authentication is not null)
         {
-            if (string.IsNullOrEmpty(_password))
+            if (string.IsNullOrEmpty(this.password))
             {
-                IsConnecting = false;
-                LastError = "OBS WebSocket requires a password. Please set OBS:Password in appsettings.json.";
-                NotifyStateChanged();
-                try { await _ws!.CloseAsync(WebSocketCloseStatus.NormalClosure, "No password configured", ct); }
+                this.IsConnecting = false;
+                this.LastError = "OBS WebSocket requires a password. Please set OBS:Password in appsettings.json.";
+                this.NotifyStateChanged();
+                try { await this.ws!.CloseAsync(WebSocketCloseStatus.NormalClosure, "No password configured", ct); }
                 catch (WebSocketException) { /* socket may already be closed */ }
                 catch (OperationCanceledException) { /* cancellation during close is fine */ }
                 return;
             }
 
-            var challenge = authentication["challenge"]!.GetValue<string>();
-            var salt = authentication["salt"]!.GetValue<string>();
-            authResponse = ComputeAuthResponse(_password, salt, challenge);
+            string challenge = authentication["challenge"]!.GetValue<string>();
+            string salt = authentication["salt"]!.GetValue<string>();
+            authResponse = ComputeAuthResponse(this.password, salt, challenge);
         }
 
-        var identify = new JsonObject
+        JsonObject identify = new()
         {
             ["op"] = 1,
             ["d"] = new JsonObject
@@ -222,14 +218,14 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             }
         };
 
-        await SendRawAsync(identify, ct);
+        await this.SendRawAsync(identify, ct);
     }
 
     private static string ComputeAuthResponse(string password, string salt, string challenge)
     {
-        var secretBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password + salt));
-        var secret = Convert.ToBase64String(secretBytes);
-        var authBytes = SHA256.HashData(Encoding.UTF8.GetBytes(secret + challenge));
+        byte[] secretBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password + salt));
+        string secret = Convert.ToBase64String(secretBytes);
+        byte[] authBytes = SHA256.HashData(Encoding.UTF8.GetBytes(secret + challenge));
         return Convert.ToBase64String(authBytes);
     }
 
@@ -239,43 +235,36 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     {
         try
         {
-            var results = await Task.WhenAll(
-                SendRequestAsync("GetSceneList", null, ct),
-                SendRequestAsync("GetStreamStatus", null, ct),
-                SendRequestAsync("GetRecordStatus", null, ct),
-                SendRequestAsync("GetVirtualCamStatus", null, ct),
-                SendRequestAsync("GetStudioModeEnabled", null, ct),
-                SendRequestAsync("GetProfileList", null, ct),
-                SendRequestAsync("GetSceneCollectionList", null, ct)
+            JsonNode?[] results = await Task.WhenAll(this.SendRequestAsync("GetSceneList", null, ct), this.SendRequestAsync("GetStreamStatus", null, ct), this.SendRequestAsync("GetRecordStatus", null, ct), this.SendRequestAsync("GetVirtualCamStatus", null, ct), this.SendRequestAsync("GetStudioModeEnabled", null, ct), this.SendRequestAsync("GetProfileList", null, ct), this.SendRequestAsync("GetSceneCollectionList", null, ct)
             );
 
             JsonNode? replayStatus = null;
-            try { replayStatus = await SendRequestAsync("GetReplayBufferStatus", null, ct); } catch { /* not configured */ }
+            try { replayStatus = await this.SendRequestAsync("GetReplayBufferStatus", null, ct); } catch { /* not configured */ }
 
-            Scenes = ParseScenes(results[0]?["scenes"]);
-            CurrentProgramScene = results[0]?["currentProgramSceneName"]?.GetValue<string>() ?? string.Empty;
-            CurrentPreviewScene = results[0]?["currentPreviewSceneName"]?.GetValue<string>() ?? string.Empty;
-            Streaming = results[1]?["outputActive"]?.GetValue<bool>() ?? false;
-            Recording = results[2]?["outputActive"]?.GetValue<bool>() ?? false;
-            VirtualCam = results[3]?["outputActive"]?.GetValue<bool>() ?? false;
-            StudioMode = results[4]?["studioModeEnabled"]?.GetValue<bool>() ?? false;
-            Profiles = ParseStringList(results[5]?["profiles"]);
-            CurrentProfile = results[5]?["currentProfileName"]?.GetValue<string>() ?? string.Empty;
-            SceneCollections = ParseStringList(results[6]?["sceneCollections"]);
-            CurrentSceneCollection = results[6]?["currentSceneCollectionName"]?.GetValue<string>() ?? string.Empty;
-            ReplayBuffer = replayStatus?["outputActive"]?.GetValue<bool>() ?? false;
+            this.Scenes = ParseScenes(results[0]?["scenes"]);
+            this.CurrentProgramScene = results[0]?["currentProgramSceneName"]?.GetValue<string>() ?? string.Empty;
+            this.CurrentPreviewScene = results[0]?["currentPreviewSceneName"]?.GetValue<string>() ?? string.Empty;
+            this.Streaming = results[1]?["outputActive"]?.GetValue<bool>() ?? false;
+            this.Recording = results[2]?["outputActive"]?.GetValue<bool>() ?? false;
+            this.VirtualCam = results[3]?["outputActive"]?.GetValue<bool>() ?? false;
+            this.StudioMode = results[4]?["studioModeEnabled"]?.GetValue<bool>() ?? false;
+            this.Profiles = ParseStringList(results[5]?["profiles"]);
+            this.CurrentProfile = results[5]?["currentProfileName"]?.GetValue<string>() ?? string.Empty;
+            this.SceneCollections = ParseStringList(results[6]?["sceneCollections"]);
+            this.CurrentSceneCollection = results[6]?["currentSceneCollectionName"]?.GetValue<string>() ?? string.Empty;
+            this.ReplayBuffer = replayStatus?["outputActive"]?.GetValue<bool>() ?? false;
 
-            IsConnecting = false;
-            IsConnected = true;
-            LastError = null;
-            NotifyStateChanged();
+            this.IsConnecting = false;
+            this.IsConnected = true;
+            this.LastError = null;
+            this.NotifyStateChanged();
         }
         catch (Exception ex)
         {
-            IsConnecting = false;
-            IsConnected = false;
-            LastError = $"Failed to load OBS state: {ex.Message}";
-            NotifyStateChanged();
+            this.IsConnecting = false;
+            this.IsConnected = false;
+            this.LastError = $"Failed to load OBS state: {ex.Message}";
+            this.NotifyStateChanged();
         }
     }
 
@@ -283,50 +272,50 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
     private void HandleEvent(JsonNode? data)
     {
-        var eventType = data?["eventType"]?.GetValue<string>();
-        var eventData = data?["eventData"];
+        string? eventType = data?["eventType"]?.GetValue<string>();
+        JsonNode? eventData = data?["eventData"];
 
         switch (eventType)
         {
             case "CurrentProgramSceneChanged":
-                CurrentProgramScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
-                NotifyStateChanged();
+                this.CurrentProgramScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
+                this.NotifyStateChanged();
                 break;
             case "CurrentPreviewSceneChanged":
-                CurrentPreviewScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
-                NotifyStateChanged();
+                this.CurrentPreviewScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
+                this.NotifyStateChanged();
                 break;
             case "StreamStateChanged":
-                Streaming = eventData?["outputActive"]?.GetValue<bool>() ?? false;
-                NotifyStateChanged();
+                this.Streaming = eventData?["outputActive"]?.GetValue<bool>() ?? false;
+                this.NotifyStateChanged();
                 break;
             case "RecordStateChanged":
-                Recording = eventData?["outputActive"]?.GetValue<bool>() ?? false;
-                NotifyStateChanged();
+                this.Recording = eventData?["outputActive"]?.GetValue<bool>() ?? false;
+                this.NotifyStateChanged();
                 break;
             case "VirtualcamStateChanged":
-                VirtualCam = eventData?["outputActive"]?.GetValue<bool>() ?? false;
-                NotifyStateChanged();
+                this.VirtualCam = eventData?["outputActive"]?.GetValue<bool>() ?? false;
+                this.NotifyStateChanged();
                 break;
             case "ReplayBufferStateChanged":
-                ReplayBuffer = eventData?["outputActive"]?.GetValue<bool>() ?? false;
-                NotifyStateChanged();
+                this.ReplayBuffer = eventData?["outputActive"]?.GetValue<bool>() ?? false;
+                this.NotifyStateChanged();
                 break;
             case "StudioModeStateChanged":
-                StudioMode = eventData?["studioModeEnabled"]?.GetValue<bool>() ?? false;
-                NotifyStateChanged();
+                this.StudioMode = eventData?["studioModeEnabled"]?.GetValue<bool>() ?? false;
+                this.NotifyStateChanged();
                 break;
             case "SceneListChanged":
-                Scenes = ParseScenes(eventData?["scenes"]);
-                NotifyStateChanged();
+                this.Scenes = ParseScenes(eventData?["scenes"]);
+                this.NotifyStateChanged();
                 break;
             case "CurrentProfileChanged":
-                CurrentProfile = eventData?["profileName"]?.GetValue<string>() ?? string.Empty;
-                NotifyStateChanged();
+                this.CurrentProfile = eventData?["profileName"]?.GetValue<string>() ?? string.Empty;
+                this.NotifyStateChanged();
                 break;
             case "CurrentSceneCollectionChanged":
-                CurrentSceneCollection = eventData?["sceneCollectionName"]?.GetValue<string>() ?? string.Empty;
-                NotifyStateChanged();
+                this.CurrentSceneCollection = eventData?["sceneCollectionName"]?.GetValue<string>() ?? string.Empty;
+                this.NotifyStateChanged();
                 break;
         }
     }
@@ -335,18 +324,18 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
     private void HandleResponse(JsonNode? data)
     {
-        var requestId = data?["requestId"]?.GetValue<string>();
-        if (requestId is null || !_pending.TryRemove(requestId, out var tcs)) return;
+        string? requestId = data?["requestId"]?.GetValue<string>();
+        if (requestId is null || !this.pending.TryRemove(requestId, out TaskCompletionSource<JsonNode?>? tcs)) return;
 
-        var status = data?["requestStatus"];
+        JsonNode? status = data?["requestStatus"];
         if (status?["result"]?.GetValue<bool>() == true)
         {
             tcs.TrySetResult(data?["responseData"]);
         }
         else
         {
-            var code = status?["code"]?.GetValue<int>();
-            var comment = status?["comment"]?.GetValue<string>() ?? data?["requestType"]?.GetValue<string>();
+            int? code = status?["code"]?.GetValue<int>();
+            string? comment = status?["comment"]?.GetValue<string>() ?? data?["requestType"]?.GetValue<string>();
             tcs.TrySetException(new InvalidOperationException($"OBS request failed ({code}): {comment}"));
         }
     }
@@ -355,21 +344,21 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
     private async Task SendRawAsync(JsonNode msg, CancellationToken ct)
     {
-        if (_ws?.State != WebSocketState.Open) return;
-        var bytes = Encoding.UTF8.GetBytes(msg.ToJsonString());
-        await _ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
+        if (this.ws?.State != WebSocketState.Open) return;
+        byte[] bytes = Encoding.UTF8.GetBytes(msg.ToJsonString());
+        await this.ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
     }
 
     private async Task<JsonNode?> SendRequestAsync(string requestType, JsonNode? requestData, CancellationToken ct)
     {
-        if (_ws?.State != WebSocketState.Open)
+        if (this.ws?.State != WebSocketState.Open)
             throw new InvalidOperationException("OBS WebSocket is not connected.");
 
-        var id = Interlocked.Increment(ref _requestCounter).ToString();
-        var tcs = new TaskCompletionSource<JsonNode?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _pending[id] = tcs;
+        string id = Interlocked.Increment(ref this.requestCounter).ToString();
+        TaskCompletionSource<JsonNode?> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        this.pending[id] = tcs;
 
-        var msg = new JsonObject
+        JsonObject msg = new()
         {
             ["op"] = 6,
             ["d"] = new JsonObject
@@ -380,14 +369,16 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             }
         };
 
-        await SendRawAsync(msg, ct);
+        await this.SendRawAsync(msg, ct);
 
-        using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
-        using var reg = linked.Token.Register(() =>
+        using CancellationTokenSource timeoutCts = new(TimeSpan.FromSeconds(10));
+        using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+        await using CancellationTokenRegistration reg = linked.Token.Register(() =>
         {
-            if (_pending.TryRemove(id, out var pendingTcs))
+            if (this.pending.TryRemove(id, out TaskCompletionSource<JsonNode?>? pendingTcs))
+            {
                 pendingTcs.TrySetCanceled(linked.Token);
+            }
         });
 
         return await tcs.Task;
@@ -395,25 +386,25 @@ public sealed class ObsWebSocketService : IAsyncDisposable
 
     private async Task SendActionAsync(string requestType, JsonNode? requestData = null)
     {
-        if (!IsConnected) return;
+        if (!this.IsConnected) return;
         try
         {
-            await SendRequestAsync(requestType, requestData, _cts?.Token ?? CancellationToken.None);
+            await this.SendRequestAsync(requestType, requestData, this.cts?.Token ?? CancellationToken.None);
         }
         catch (Exception ex)
         {
-            LastError = $"OBS action failed ({requestType}): {ex.Message}";
-            NotifyStateChanged();
+            this.LastError = $"OBS action failed ({requestType}): {ex.Message}";
+            this.NotifyStateChanged();
         }
     }
 
     // ── Helpers ──
 
-    private static List<OBSScene> ParseScenes(JsonNode? node)
+    private static List<ObsScene> ParseScenes(JsonNode? node)
     {
         if (node is not JsonArray arr) return [];
         return arr
-            .Select(s => new OBSScene { SceneName = s?["sceneName"]?.GetValue<string>() ?? string.Empty })
+            .Select(s => new ObsScene { SceneName = s?["sceneName"]?.GetValue<string>() ?? string.Empty })
             .Where(s => !string.IsNullOrEmpty(s.SceneName) && !s.SceneName.Contains("(hidden)"))
             .Reverse()
             .ToList();
@@ -428,44 +419,44 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             .ToList();
     }
 
-    private void NotifyStateChanged() => StateChanged?.Invoke();
+    private void NotifyStateChanged() => this.StateChanged?.Invoke();
 
     private async Task CleanupAsync()
     {
-        _cts?.Cancel();
-        if (_receiveTask is not null)
+        this.cts?.Cancel();
+        if (this.receiveTask is not null)
         {
-            try { await _receiveTask.WaitAsync(TimeSpan.FromSeconds(2)); }
+            try { await this.receiveTask.WaitAsync(TimeSpan.FromSeconds(2)); }
             catch (TimeoutException) { /* receive task did not exit in time; it will be abandoned */ }
             catch (OperationCanceledException) { /* expected */ }
         }
-        _receiveTask = null;
+        this.receiveTask = null;
 
-        if (_ws is not null)
+        if (this.ws is not null)
         {
             try
             {
-                if (_ws.State == WebSocketState.Open)
-                    await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnect", CancellationToken.None);
+                if (this.ws.State == WebSocketState.Open)
+                    await this.ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Disconnect", CancellationToken.None);
             }
             catch (WebSocketException) { /* socket may already be closed or faulted */ }
-            _ws.Dispose();
-            _ws = null;
+            this.ws.Dispose();
+            this.ws = null;
         }
 
-        _cts?.Dispose();
-        _cts = null;
+        this.cts?.Dispose();
+        this.cts = null;
 
-        foreach (var (_, tcs) in _pending)
+        foreach ((string _, TaskCompletionSource<JsonNode?> tcs) in this.pending)
             tcs.TrySetCanceled();
-        _pending.Clear();
+        this.pending.Clear();
     }
 
-    public async ValueTask DisposeAsync() => await CleanupAsync();
+    public async ValueTask DisposeAsync() => await this.CleanupAsync();
 }
 
 /// <summary>Lightweight OBS scene descriptor.</summary>
-public sealed record OBSScene
+public sealed record ObsScene
 {
     public string SceneName { get; init; } = string.Empty;
 }

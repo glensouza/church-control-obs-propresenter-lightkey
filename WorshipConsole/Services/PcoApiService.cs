@@ -7,9 +7,9 @@ namespace WorshipConsole.Services;
 
 public class PcoApiService
 {
-    private readonly HttpClient _httpClient;
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<PcoApiService> _logger;
+    private readonly HttpClient httpClient;
+    private readonly IConfiguration configuration;
+    private readonly ILogger<PcoApiService> logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -18,55 +18,55 @@ public class PcoApiService
 
     public PcoApiService(HttpClient httpClient, IConfiguration configuration, ILogger<PcoApiService> logger)
     {
-        _httpClient = httpClient;
-        _configuration = configuration;
-        _logger = logger;
+        this.httpClient = httpClient;
+        this.configuration = configuration;
+        this.logger = logger;
 
-        ConfigureHttpClient();
+        this.ConfigureHttpClient();
     }
 
     private void ConfigureHttpClient()
     {
-        var appId = _configuration["Pco:AppId"];
-        var appSecret = _configuration["Pco:AppSecret"];
+        string? appId = this.configuration["Pco:AppId"];
+        string? appSecret = this.configuration["Pco:AppSecret"];
 
         if (!string.IsNullOrWhiteSpace(appId) && !string.IsNullOrWhiteSpace(appSecret))
         {
-            var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{appId}:{appSecret}"));
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+            string credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"{appId}:{appSecret}"));
+            this.httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
         }
 
-        _httpClient.BaseAddress = new Uri("https://api.planningcenteronline.com");
+        this.httpClient.BaseAddress = new Uri("https://api.planningcenteronline.com");
     }
 
     public bool IsConfigured()
     {
-        return !string.IsNullOrWhiteSpace(_configuration["Pco:AppId"])
-            && !string.IsNullOrWhiteSpace(_configuration["Pco:AppSecret"])
-            && !string.IsNullOrWhiteSpace(_configuration["Pco:ServiceTypeId"]);
+        return !string.IsNullOrWhiteSpace(this.configuration["Pco:AppId"])
+            && !string.IsNullOrWhiteSpace(this.configuration["Pco:AppSecret"])
+            && !string.IsNullOrWhiteSpace(this.configuration["Pco:ServiceTypeId"]);
     }
 
     public async Task<ContactInfo?> GetNextSaturdayContactsAsync()
     {
-        var serviceTypeId = _configuration["Pco:ServiceTypeId"];
+        string? serviceTypeId = this.configuration["Pco:ServiceTypeId"];
         if (string.IsNullOrWhiteSpace(serviceTypeId))
         {
-            _logger.LogWarning("Pco:ServiceTypeId is not configured.");
+            this.logger.LogWarning("Pco:ServiceTypeId is not configured.");
             return null;
         }
 
-        var plan = await GetNextSaturdayPlanAsync(serviceTypeId);
+        PcoPlan? plan = await this.GetNextSaturdayPlanAsync(serviceTypeId);
         if (plan == null)
         {
-            _logger.LogWarning("No upcoming Saturday plan found for service type {ServiceTypeId}.", serviceTypeId);
+            this.logger.LogWarning("No upcoming Saturday plan found for service type {ServiceTypeId}.", serviceTypeId);
             return null;
         }
 
-        var teamMembers = await GetPlanTeamMembersAsync(serviceTypeId, plan.Id);
+        List<PcoPlanPerson> teamMembers = await this.GetPlanTeamMembersAsync(serviceTypeId, plan.Id);
 
-        var propresenterPosition = _configuration["Pco:ProPresenterPosition"] ?? "ProPresenter";
-        var livestreamPosition = _configuration["Pco:LivestreamPosition"] ?? "Livestream";
-        var worshipCoordinatorPosition = _configuration["Pco:WorshipCoordinatorPosition"] ?? "Worship Coordinator";
+        string propresenterPosition = this.configuration["Pco:ProPresenterPosition"] ?? "ProPresenter";
+        string livestreamPosition = this.configuration["Pco:LivestreamPosition"] ?? "Livestream";
+        string worshipCoordinatorPosition = this.configuration["Pco:WorshipCoordinatorPosition"] ?? "Worship Coordinator";
 
         return new ContactInfo
         {
@@ -82,18 +82,18 @@ public class PcoApiService
     {
         try
         {
-            var url = $"/services/v2/service_types/{serviceTypeId}/plans?filter=future&order=sort_date&per_page=10";
-            var response = await _httpClient.GetAsync(url);
+            string url = $"/services/v2/service_types/{serviceTypeId}/plans?filter=future&order=sort_date&per_page=10";
+            HttpResponseMessage response = await this.httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
-            var json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<PcoResponse<PcoPlan>>(json, JsonOptions);
+            string json = await response.Content.ReadAsStringAsync();
+            PcoResponse<PcoPlan>? result = JsonSerializer.Deserialize<PcoResponse<PcoPlan>>(json, JsonOptions);
 
             return result?.Data.FirstOrDefault(p => p.Attributes.SortDate.DayOfWeek == DayOfWeek.Saturday);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching plans from PCO for service type {ServiceTypeId}.", serviceTypeId);
+            this.logger.LogError(ex, "Error fetching plans from PCO for service type {ServiceTypeId}.", serviceTypeId);
             throw;
         }
     }
@@ -102,18 +102,18 @@ public class PcoApiService
     {
         try
         {
-            var url = $"/services/v2/service_types/{serviceTypeId}/plans/{planId}/team_members";
-            var response = await _httpClient.GetAsync(url);
+            string url = $"/services/v2/service_types/{serviceTypeId}/plans/{planId}/team_members";
+            HttpResponseMessage response = await this.httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
-            var json = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<PcoResponse<PcoPlanPerson>>(json, JsonOptions);
+            string json = await response.Content.ReadAsStringAsync();
+            PcoResponse<PcoPlanPerson>? result = JsonSerializer.Deserialize<PcoResponse<PcoPlanPerson>>(json, JsonOptions);
 
             return result?.Data ?? [];
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error fetching team members from PCO for plan {PlanId}.", planId);
+            this.logger.LogError(ex, "Error fetching team members from PCO for plan {PlanId}.", planId);
             throw;
         }
     }

@@ -9,7 +9,7 @@
         <h2 class="fw-bold mb-2">Service Contacts</h2>
         <p class="text-gray mb-5">Technology team members scheduled for the next Saturday service, pulled live from Planning Center Online.</p>
 
-        @if (!_isConfigured)
+        @if (!isConfigured)
         {
             <div class="alert alert-warning d-flex align-items-center gap-3" role="alert">
                 <i class="fa-solid fa-triangle-exclamation fs-4"></i>
@@ -19,7 +19,7 @@
                 </div>
             </div>
         }
-        else if (_isLoading)
+        else if (isLoading)
         {
             <div class="d-flex align-items-center gap-3 text-gray">
                 <div class="spinner-border spinner-border-sm text-teal" role="status">
@@ -28,14 +28,14 @@
                 <span>Loading contacts from Planning Center Online…</span>
             </div>
         }
-        else if (_error != null)
+        else if (error != null)
         {
             <div class="alert alert-danger d-flex align-items-center gap-3" role="alert">
                 <i class="fa-solid fa-circle-exclamation fs-4"></i>
-                <div>@_error</div>
+                <div>@error</div>
             </div>
         }
-        else if (_contacts == null)
+        else if (contacts == null)
         {
             <div class="alert alert-secondary" role="alert">
                 No upcoming Saturday service was found in Planning Center Online.
@@ -44,7 +44,7 @@
         else
         {
             <p class="text-teal fw-semibold mb-4">
-                <i class="fa-regular fa-calendar me-2"></i>Next Saturday: @_contacts.ServiceDates
+                <i class="fa-regular fa-calendar me-2"></i>Next Saturday: @contacts.ServiceDates
             </p>
             <div class="row g-4">
                 <div class="col-md-4">
@@ -53,7 +53,7 @@
                             <i class="fa-solid fa-desktop display-5 text-teal mb-3"></i>
                             <h5 class="fw-bold mb-1">ProPresenter</h5>
                             <p class="text-gray small mb-3">Slides &amp; Media Operator</p>
-                            <p class="fs-5 mb-0">@(_contacts.ProPresenter ?? "Not assigned")</p>
+                            <p class="fs-5 mb-0">@(contacts.ProPresenter ?? "Not assigned")</p>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                             <i class="fa-solid fa-video display-5 text-teal mb-3"></i>
                             <h5 class="fw-bold mb-1">Livestream</h5>
                             <p class="text-gray small mb-3">Livestream Operator</p>
-                            <p class="fs-5 mb-0">@(_contacts.Livestream ?? "Not assigned")</p>
+                            <p class="fs-5 mb-0">@(contacts.Livestream ?? "Not assigned")</p>
                         </div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
                             <i class="fa-regular fa-lightbulb display-5 text-teal mb-3"></i>
                             <h5 class="fw-bold mb-1">Lights</h5>
                             <p class="text-gray small mb-3">Worship Coordinator</p>
-                            <p class="fs-5 mb-0">@(_contacts.WorshipCoordinator ?? "Not assigned")</p>
+                            <p class="fs-5 mb-0">@(contacts.WorshipCoordinator ?? "Not assigned")</p>
                         </div>
                     </div>
                 </div>
@@ -83,32 +83,32 @@
 </section>
 
 @code {
-    private bool _isLoading = true;
-    private bool _isConfigured;
-    private ContactInfo? _contacts;
-    private string? _error;
+    private bool isLoading = true;
+    private bool isConfigured;
+    private ContactInfo? contacts;
+    private string? error;
 
     protected override async Task OnInitializedAsync()
     {
-        _isConfigured = PcoApiService.IsConfigured();
-        if (!_isConfigured)
+        isConfigured = PcoApiService.IsConfigured();
+        if (!isConfigured)
         {
-            _isLoading = false;
+            isLoading = false;
             return;
         }
 
         try
         {
-            _contacts = await PcoApiService.GetNextSaturdayContactsAsync();
+            contacts = await PcoApiService.GetNextSaturdayContactsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Failed to load service contacts from Planning Center Online.");
-            _error = "An error occurred while loading contacts. Please try again later.";
+            error = "An error occurred while loading contacts. Please try again later.";
         }
         finally
         {
-            _isLoading = false;
+            isLoading = false;
         }
     }
 }
