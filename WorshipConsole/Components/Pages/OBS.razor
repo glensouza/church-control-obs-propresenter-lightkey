@@ -18,6 +18,9 @@
         <div class="d-flex align-items-center gap-2 flex-wrap">
             @if (ObsService.IsConnected)
             {
+                <button class="btn btn-sm btn-outline-teal me-2" @onclick="RefreshScreenshotsAsync" title="Refresh Screenshots">
+                    <i class="fa-solid fa-sync @(refreshing ? "fa-spin" : "")"></i> Refresh
+                </button>
                 <span class="badge bg-success fs-6">● Connected</span>
                 <button class="btn btn-sm btn-outline-danger" @onclick="DisconnectAsync">Disconnect</button>
             }
@@ -78,6 +81,7 @@
             @* Profile *@
             @if (ObsService.Profiles.Count > 0)
             {
+                @*
                 <div>
                     <label class="form-label text-gray small mb-1">Profile</label>
                     <select class="form-select form-select-sm bg-dark text-white border-secondary"
@@ -88,11 +92,13 @@
                         }
                     </select>
                 </div>
+                *@
             }
 
             @* Scene Collection *@
             @if (ObsService.SceneCollections.Count > 0)
             {
+                @*
                 <div>
                     <label class="form-label text-gray small mb-1">Scene Collection</label>
                     <select class="form-select form-select-sm bg-dark text-white border-secondary"
@@ -103,15 +109,18 @@
                         }
                     </select>
                 </div>
+                *@
             }
 
             @* Studio Mode toggle *@
+            @*
             <div class="form-check form-switch mb-1">
                 <input class="form-check-input" type="checkbox" id="studioSwitch" role="switch"
                        checked="@ObsService.StudioMode"
                        @onchange="StudioModeToggledAsync" />
                 <label class="form-check-label text-white" for="studioSwitch">Studio Mode</label>
             </div>
+            *@
         </div>
 
         @* ── Scenes ── *@
@@ -292,10 +301,26 @@
         InvokeAsync(StateHasChanged);
     }
 
+    private bool refreshing;
+
     // ── Connection ──
 
     private Task ConnectAsync() => ObsService.ConnectAsync();
     private Task DisconnectAsync() => ObsService.DisconnectAsync();
+
+    private async Task RefreshScreenshotsAsync()
+    {
+        if (refreshing) return;
+        refreshing = true;
+        try
+        {
+            await ObsService.RefreshScreenshotsAsync();
+        }
+        finally
+        {
+            refreshing = false;
+        }
+    }
 
     // ── Scene actions ──
 

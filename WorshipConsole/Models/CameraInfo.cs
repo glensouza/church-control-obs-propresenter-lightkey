@@ -9,5 +9,5 @@ public class CameraInfo
     public int PanSpeed { get; set; } = 10;
     public int TiltSpeed { get; set; } = 10;
     public int ZoomSpeed { get; set; } = 4;
-    public int NumberOfPresets { get; set; } = 8;
+    public int NumberOfPresets { get; set; } = 9;
 }

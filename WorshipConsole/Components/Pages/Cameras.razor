@@ -172,22 +172,23 @@
 
                                     <!-- Presets -->
                                     <div class="col">
-                                        <p class="text-gray small mb-2">Presets</p>
+                                        <p class="text-gray small mb-2">Presets (Numpad Layout)</p>
                                         <div class="preset-grid">
-                                            @for (int i = 0; i < cam.NumberOfPresets; i++)
+                                            @foreach (int presetIndex in (new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 }))
                                             {
-                                                int presetIndex = i;
-                                                <div class="d-flex gap-1 mb-1">
-                                                    <button class="btn btn-outline-teal flex-grow-1 preset-btn"
+                                                <div class="preset-cell">
+                                                    <button class="btn btn-outline-teal preset-btn"
                                                             title="Recall Preset @(presetIndex + 1)"
                                                             @onclick="() => RecallPresetAsync(cam, presetIndex)">
                                                         @(presetIndex + 1)
                                                     </button>
+                                                    @*
                                                     <button class="btn btn-outline-secondary preset-save-btn"
                                                             title="Save Preset @(presetIndex + 1)"
                                                             @onclick="() => SavePresetAsync(cam, presetIndex)">
                                                         <i class="fa-solid fa-floppy-disk"></i>
                                                     </button>
+                                                    *@
                                                 </div>
                                             }
                                         </div>
