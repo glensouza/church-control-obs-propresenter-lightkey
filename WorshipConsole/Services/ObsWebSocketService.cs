@@ -27,6 +27,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     private Task? receiveTask;
     private int requestCounter;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonNode?>> pending = new();
+    private readonly ILogger<ObsWebSocketService> logger;
 
     // ── Connection state ──
     public bool IsConnecting { get; private set; }
@@ -37,6 +38,8 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     public List<ObsScene> Scenes { get; private set; } = [];
     public string CurrentProgramScene { get; private set; } = string.Empty;
     public string CurrentPreviewScene { get; private set; } = string.Empty;
+    public string? ProgramScreenshot { get; private set; }
+    public string? PreviewScreenshot { get; private set; }
     public bool Streaming { get; private set; }
     public bool Recording { get; private set; }
     public bool VirtualCam { get; private set; }
@@ -50,11 +53,12 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     /// <summary>Raised on any state change so Blazor components can call StateHasChanged.</summary>
     public event Action? StateChanged;
 
-    public ObsWebSocketService(IConfiguration configuration)
+    public ObsWebSocketService(IConfiguration configuration, ILogger<ObsWebSocketService> logger)
     {
         this.host = configuration["OBS:Host"] ?? "127.0.0.1";
         this.port = int.TryParse(configuration["OBS:Port"], out int p) ? p : 4455;
         this.password = configuration["OBS:Password"] ?? string.Empty;
+        this.logger = logger;
     }
 
     // ── Public: connection ──
@@ -75,12 +79,71 @@ public sealed class ObsWebSocketService : IAsyncDisposable
         {
             await this.ws.ConnectAsync(new Uri($"ws://{this.host}:{this.port}"), this.cts.Token);
             this.receiveTask = this.ReceiveLoopAsync(this.cts.Token);
+            _ = this.ScreenshotLoopAsync(this.cts.Token);
         }
         catch (Exception ex)
         {
             this.IsConnecting = false;
             this.LastError = $"Unable to connect to OBS at {this.host}:{this.port}. Ensure OBS is running and the WebSocket server is enabled. ({ex.Message})";
             this.NotifyStateChanged();
+        }
+    }
+
+    private async Task ScreenshotLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            await this.RefreshScreenshotsAsync(ct);
+            await Task.Delay(5000, ct); // Periodic refresh every 5s
+        }
+    }
+
+    public async Task RefreshScreenshotsAsync(CancellationToken ct = default)
+    {
+        if (!this.IsConnected) return;
+
+        try
+        {
+            // Fetch Program Screenshot
+            string programScene = this.CurrentProgramScene;
+            if (!string.IsNullOrEmpty(programScene))
+            {
+                var res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
+                {
+                    ["sourceName"] = programScene,
+                    ["imageFormat"] = "jpg",
+                    ["imageWidth"] = 480,
+                    ["imageHeight"] = 270,
+                    ["imageCompression"] = 30
+                }, ct);
+                this.ProgramScreenshot = res?["imageData"]?.GetValue<string>();
+            }
+
+            // Fetch Preview Screenshot (only if in Studio Mode)
+            string previewScene = this.CurrentPreviewScene;
+            if (this.StudioMode && !string.IsNullOrEmpty(previewScene))
+            {
+                var res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
+                {
+                    ["sourceName"] = previewScene,
+                    ["imageFormat"] = "jpg",
+                    ["imageWidth"] = 480,
+                    ["imageHeight"] = 270,
+                    ["imageCompression"] = 30
+                }, ct);
+                this.PreviewScreenshot = res?["imageData"]?.GetValue<string>();
+            }
+            else
+            {
+                this.PreviewScreenshot = null;
+            }
+
+            this.NotifyStateChanged();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            this.logger.LogWarning("Failed to fetch OBS screenshot: {Message}", ex.Message);
         }
     }
 
@@ -158,7 +221,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
                 switch (op)
                 {
                     case 0: await this.HandleHelloAsync(data, ct); break;
-                    case 2: await this.FetchInitialStateAsync(ct); break;
+                    case 2: _ = this.FetchInitialStateAsync(ct); break;
                     case 5:
                         this.HandleEvent(data); break;
                     case 7:
@@ -280,10 +343,12 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             case "CurrentProgramSceneChanged":
                 this.CurrentProgramScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
                 this.NotifyStateChanged();
+                _ = this.RefreshScreenshotsAsync();
                 break;
             case "CurrentPreviewSceneChanged":
                 this.CurrentPreviewScene = eventData?["sceneName"]?.GetValue<string>() ?? string.Empty;
                 this.NotifyStateChanged();
+                _ = this.RefreshScreenshotsAsync();
                 break;
             case "StreamStateChanged":
                 this.Streaming = eventData?["outputActive"]?.GetValue<bool>() ?? false;

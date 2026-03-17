@@ -14,3 +14,18 @@
 .scene-btn:active {
     transform: translateY(0);
 }
+
+.preview-container {
+    position: relative;
+    background: #1a1a1a;
+}
+
+.preview-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}

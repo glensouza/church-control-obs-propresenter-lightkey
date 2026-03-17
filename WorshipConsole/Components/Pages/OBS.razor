@@ -123,6 +123,15 @@
                     <h5 class="text-teal mb-3">
                         <i class="fa-solid fa-eye me-1"></i> Preview
                     </h5>
+                    
+                    @if (!string.IsNullOrEmpty(ObsService.PreviewScreenshot))
+                    {
+                        <div class="preview-container mb-3 border border-teal rounded overflow-hidden shadow-sm">
+                            <img src="@ObsService.PreviewScreenshot" class="w-100 d-block" alt="Preview" />
+                            <div class="preview-label bg-teal text-white small px-2 py-1">@ObsService.CurrentPreviewScene</div>
+                        </div>
+                    }
+
                     <div class="row g-2">
                         @foreach (ObsScene scene in ObsService.Scenes)
                         {
@@ -146,6 +155,15 @@
                     <h5 class="text-danger mb-3">
                         <i class="fa-solid fa-circle-dot me-1"></i> Program
                     </h5>
+
+                    @if (!string.IsNullOrEmpty(ObsService.ProgramScreenshot))
+                    {
+                        <div class="preview-container mb-3 border border-danger rounded overflow-hidden shadow-sm">
+                            <img src="@ObsService.ProgramScreenshot" class="w-100 d-block" alt="Program" />
+                            <div class="preview-label bg-danger text-white small px-2 py-1">@ObsService.CurrentProgramScene</div>
+                        </div>
+                    }
+
                     <div class="row g-2">
                         @foreach (ObsScene scene in ObsService.Scenes)
                         {
@@ -164,6 +182,15 @@
         {
             <div class="mb-4">
                 <h5 class="text-gray mb-3">Scenes</h5>
+
+                @if (!string.IsNullOrEmpty(ObsService.ProgramScreenshot))
+                {
+                    <div class="preview-container mb-4 border border-secondary rounded overflow-hidden shadow-sm" style="max-width: 640px;">
+                        <img src="@ObsService.ProgramScreenshot" class="w-100 d-block" alt="Program" />
+                        <div class="preview-label bg-dark text-white small px-2 py-1">Live: @ObsService.CurrentProgramScene</div>
+                    </div>
+                }
+
                 <div class="row g-2">
                     @foreach (ObsScene scene in ObsService.Scenes)
                     {
