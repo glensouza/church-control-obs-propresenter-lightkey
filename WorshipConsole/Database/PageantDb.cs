@@ -9,4 +9,5 @@ public class PageantDb : DbContext
 
     public DbSet<Script> Scripts => this.Set<Script>();
     public DbSet<Settings> Settings => this.Set<Settings>();
+    public DbSet<CameraInfo> Cameras => this.Set<CameraInfo>();
 }

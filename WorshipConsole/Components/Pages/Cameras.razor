@@ -1,21 +1,26 @@
 @page "/cameras"
 @rendermode InteractiveServer
 
-@inject IConfiguration Configuration
+@inject PageantDb Db
 @inject UniFiService UniFi
 @inject ViscaService Visca
 
 <PageTitle>Livestream Cameras | Worship Console</PageTitle>
 
 <div class="container py-4">
-    <h2 class="fw-bold text-white mb-4">
-        <i class="fa-solid fa-video me-2 text-teal"></i> Cameras
-    </h2>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold text-white mb-0">
+            <i class="fa-solid fa-video me-2 text-teal"></i> Cameras
+        </h2>
+        <a href="/admin/cameras" class="btn btn-outline-secondary btn-sm">
+            <i class="fa-solid fa-gear me-1"></i> Admin
+        </a>
+    </div>
 
     @if (cameras.Count == 0)
     {
         <div class="alert alert-secondary navy-light-bg text-white border-secondary">
-            No cameras are configured. Add camera entries to <code>appsettings.json</code> under the <code>Cameras</code> section.
+            No cameras are configured. Add camera entries in the <a href="/admin/cameras" class="text-teal">Camera Admin</a> page.
         </div>
     }
     else
@@ -174,7 +179,7 @@
                                     <div class="col">
                                         <p class="text-gray small mb-2">Presets (Numpad Layout)</p>
                                         <div class="preset-grid">
-                                            @foreach (int presetIndex in (new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8 }))
+                                            @foreach (int presetIndex in (new int[] { 6, 7, 8, 3, 4, 5, 0, 1, 2 }))
                                             {
                                                 <div class="preset-cell">
                                                     <button class="btn btn-outline-teal preset-btn"
@@ -223,7 +228,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        cameras = Configuration.GetSection("Cameras").Get<List<CameraInfo>>() ?? [];
+        cameras = await Db.Cameras.ToListAsync();
         await RefreshPortStatusesAsync();
     }
 
