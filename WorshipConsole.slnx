@@ -1,3 +1,12 @@
 <Solution>
+  <Folder Name="/SolutionFiles/">
+    <File Path=".gitignore" />
+    <File Path="GEMINI.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/SolutionFiles/.github/">
+    <File Path=".github/copilot-instructions.md" />
+    <File Path=".github/COPILOT_INSTRUCTIONS.md" />
+  </Folder>
   <Project Path="WorshipConsole/WorshipConsole.csproj" />
 </Solution>
