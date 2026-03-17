@@ -2,7 +2,87 @@
 
 <PageTitle>Livestream | Worship Console</PageTitle>
 
-<h3>Livestream</h3>
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold text-white display-4">
+            <i class="fa-solid fa-tower-broadcast text-teal me-3"></i>Livestream Control
+        </h1>
+        <p class="text-gray lead">Select a control module to manage your live broadcast and camera hardware.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- OBS Control Card -->
+        <div class="col-12 col-md-6 col-xl-5">
+            <div class="card h-100 navy-light-bg text-white border-secondary feature-card shadow">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-dark rounded-circle p-3 me-3">
+                            <img src="obs.png" style="width: 48px; height: 48px;" alt="OBS Logo" />
+                        </div>
+                        <h3 class="fw-bold mb-0">OBS Studio</h3>
+                    </div>
+                    
+                    <p class="text-gray mb-4 flex-grow-1">
+                        Control your livestream production directly. Switch scenes, start/stop the stream, manage recording, 
+                        and monitor the live output with real-time screenshots.
+                    </p>
+
+                    <div class="mb-4">
+                        <h6 class="text-teal text-uppercase fw-bold small mb-2">Instructions:</h6>
+                        <ul class="text-gray small ps-3">
+                            <li>Ensure OBS is running on the production computer.</li>
+                            <li>Click "Connect" to sync with the OBS WebSocket server.</li>
+                            <li>Use <strong>Studio Mode</strong> for previewing scenes before going live.</li>
+                        </ul>
+                    </div>
+
+                    <a href="/obs" class="btn btn-teal-glow fw-bold py-3">
+                        <i class="fa-solid fa-desktop me-2"></i>Open OBS Control
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Control Card -->
+        <div class="col-12 col-md-6 col-xl-5">
+            <div class="card h-100 navy-light-bg text-white border-secondary feature-card shadow">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-dark rounded-circle p-3 me-3 text-teal">
+                            <i class="fa-solid fa-video fa-3x"></i>
+                        </div>
+                        <h3 class="fw-bold mb-0">PTZ Cameras</h3>
+                    </div>
+                    
+                    <p class="text-gray mb-4 flex-grow-1">
+                        Remotely manage your PTZ camera hardware. Adjust Pan, Tilt, and Zoom, toggle PoE power, 
+                        and quickly recall your 9 position presets.
+                    </p>
+
+                    <div class="mb-4">
+                        <h6 class="text-teal text-uppercase fw-bold small mb-2">Instructions:</h6>
+                        <ul class="text-gray small ps-3">
+                            <li>Verify camera network connectivity (IP Address config).</li>
+                            <li>Toggle <strong>PoE Power</strong> if a camera needs to be rebooted.</li>
+                            <li>Use the <strong>Numeric Keypad</strong> layout for quick preset recalls.</li>
+                        </ul>
+                    </div>
+
+                    <a href="/cameras" class="btn btn-outline-teal fw-bold py-3">
+                        <i class="fa-solid fa-sliders me-2"></i>Open Camera Control
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5 text-center">
+        <div class="alert alert-secondary navy-light-bg border-secondary d-inline-block px-4 py-3">
+            <i class="fa-solid fa-circle-info text-teal me-2"></i>
+            <span class="text-gray">Settings for IP addresses and ports can be found in <code>appsettings.json</code>.</span>
+        </div>
+    </div>
+</div>
 
 @code {
 
