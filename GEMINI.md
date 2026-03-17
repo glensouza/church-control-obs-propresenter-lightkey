@@ -65,4 +65,4 @@ Configuration is managed in `WorshipConsole/appsettings.json`. Key sections incl
 - `WorshipConsole/Services`: Core logic for external integrations.
 - `WorshipConsole/Models`: POCO classes for DB and API data.
 - `WorshipConsole/Database`: EF Core context and migrations.
-- `docs/`: Additional documentation (e.g., `OBS.md`).
+- `docs/`: Additional documentation (e.g., `OBS.md`, `PlanningCenter.md`).

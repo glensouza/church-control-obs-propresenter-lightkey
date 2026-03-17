@@ -8,5 +8,9 @@
     <File Path=".github/copilot-instructions.md" />
     <File Path=".github/COPILOT_INSTRUCTIONS.md" />
   </Folder>
+  <Folder Name="/SolutionFiles/docs/">
+    <File Path="docs/OBS.md" />
+    <File Path="docs/PlanningCenter.md" />
+  </Folder>
   <Project Path="WorshipConsole/WorshipConsole.csproj" />
 </Solution>

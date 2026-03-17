@@ -82,12 +82,40 @@ public class PcoApiService
     {
         try
         {
+            // Start with future plans (standard PCO filter).
             string url = $"/services/v2/service_types/{serviceTypeId}/plans?filter=future&order=sort_date&per_page=10";
             HttpResponseMessage response = await this.httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();
 
             string json = await response.Content.ReadAsStringAsync();
             PcoResponse<PcoPlan>? result = JsonSerializer.Deserialize<PcoResponse<PcoPlan>>(json, JsonOptions);
+
+            DateTime today = DateTime.Today;
+
+            // Special case for Saturday: if the service has already started, "filter=future" will skip today's plan.
+            // We check if the first future Saturday plan is actually today. If not, we check the most recent past plan.
+            if (today.DayOfWeek == DayOfWeek.Saturday)
+            {
+                PcoPlan? firstFutureSaturday = result?.Data.FirstOrDefault(p => p.Attributes.SortDate.DayOfWeek == DayOfWeek.Saturday);
+                
+                if (firstFutureSaturday == null || firstFutureSaturday.Attributes.SortDate.Date != today)
+                {
+                    string pastUrl = $"/services/v2/service_types/{serviceTypeId}/plans?filter=past&order=-sort_date&per_page=1";
+                    HttpResponseMessage pastResponse = await this.httpClient.GetAsync(pastUrl);
+                    
+                    if (pastResponse.IsSuccessStatusCode)
+                    {
+                        string pastJson = await pastResponse.Content.ReadAsStringAsync();
+                        PcoResponse<PcoPlan>? pastResult = JsonSerializer.Deserialize<PcoResponse<PcoPlan>>(pastJson, JsonOptions);
+                        PcoPlan? lastPast = pastResult?.Data.FirstOrDefault();
+                        
+                        if (lastPast != null && lastPast.Attributes.SortDate.Date == today)
+                        {
+                            return lastPast;
+                        }
+                    }
+                }
+            }
 
             return result?.Data.FirstOrDefault(p => p.Attributes.SortDate.DayOfWeek == DayOfWeek.Saturday);
         }
@@ -120,9 +148,12 @@ public class PcoApiService
 
     private static string? FindTeamMember(List<PcoPlanPerson> members, string positionName)
     {
-        return members.FirstOrDefault(m =>
-            m.Attributes.TeamPositionName != null &&
-            m.Attributes.TeamPositionName.Contains(positionName, StringComparison.OrdinalIgnoreCase))
-            ?.Attributes.Name;
+        IEnumerable<string> names = members
+            .Where(m => m.Attributes.TeamPositionName != null &&
+                        m.Attributes.TeamPositionName.Contains(positionName, StringComparison.OrdinalIgnoreCase))
+            .Select(m => m.Attributes.Name);
+
+        string joined = string.Join(", ", names);
+        return string.IsNullOrWhiteSpace(joined) ? null : joined;
     }
 }
