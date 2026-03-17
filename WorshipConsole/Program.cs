@@ -23,6 +23,7 @@ builder.Services.AddSingleton<UniFiService>();
 builder.Services.AddSingleton<ViscaService>();
 builder.Services.AddScoped<ObsWebSocketService>();
 builder.Services.AddHttpClient<PcoApiService>();
+builder.Services.AddHttpClient<ProPresenterService>();
 
 WebApplication app = builder.Build();
 

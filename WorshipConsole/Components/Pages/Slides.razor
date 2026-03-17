@@ -1,17 +1,328 @@
-﻿@page "/slides"
+@page "/slides"
+@rendermode InteractiveServer
+
+@inject ProPresenterService ProPresenter
+@inject ILogger<Slides> Logger
+@implements IDisposable
 
 <PageTitle>ProPresenter Slides | Worship Console</PageTitle>
 
-<h3>Slides</h3>
+<div class="container py-4">
+    @* ── Header ── *@
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <i class="fa-solid fa-images text-teal fs-2"></i>
+            <h2 class="fw-bold text-white mb-0">Slides</h2>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            @if (isConnected)
+            {
+                <span class="badge bg-success">● Connected</span>
+            }
+            else
+            {
+                <span class="badge bg-danger">● Disconnected</span>
+            }
+            <button class="btn btn-sm btn-outline-secondary" @onclick="CheckConnectionAsync" disabled="@isConnecting">
+                <i class="fa-solid fa-arrows-rotate @(isConnecting ? "fa-spin" : "") me-1"></i>
+            </button>
+        </div>
+    </div>
 
-<p>
-    TODO
-    <ul>
-        <li>current slide</li>
-        <li>control to next slide</li>
-    </ul>
-</p>
+    @if (!ProPresenter.IsConfigured)
+    {
+        <div class="alert alert-warning border-warning navy-light-bg text-white">
+            <h5 class="fw-bold"><i class="fa-solid fa-circle-exclamation me-2"></i> Not Configured</h5>
+            ProPresenter is not configured in <code>appsettings.json</code>.
+        </div>
+    }
+    else if (!isConnected)
+    {
+        <div class="alert alert-danger border-danger navy-light-bg text-white">
+            <h5 class="fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> Connection Failed</h5>
+            <p class="mb-2">Unable to connect to ProPresenter.</p>
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="bg-dark bg-opacity-50 p-2 rounded small font-monospace border border-danger border-opacity-25 mb-2">
+                    @statusMessage
+                </div>
+            }
+            <button class="btn btn-sm btn-outline-light" @onclick="CheckConnectionAsync">Try Again</button>
+        </div>
+    }
+    else
+    {
+        @* ── Main Control Area ── *@
+        <div class="row g-4">
+            @* Current Slide Preview *@
+            <div class="col-12 col-lg-8">
+                <div class="card navy-light-bg text-white border-secondary h-100 overflow-hidden shadow-lg">
+                    <div class="card-header bg-dark border-secondary py-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold text-teal small text-uppercase tracking-wider">Current Slide</span>
+                        <span class="badge bg-teal text-dark">LIVE</span>
+                    </div>
+                    <div class="card-body p-0 position-relative bg-black d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                        @if (!string.IsNullOrEmpty(currentThumbnail))
+                        {
+                            <img src="@currentThumbnail" class="img-fluid w-100 h-100 object-fit-contain" alt="Current Slide" />
+                        }
+                        else
+                        {
+                            <div class="text-center p-5">
+                                <i class="fa-solid fa-display display-1 text-gray opacity-25 mb-3"></i>
+                                <h4 class="text-gray fw-light">Active Slide Content</h4>
+                                <p class="text-gray small opacity-50">Slide rendering in progress...</p>
+                            </div>
+                        }
+                        
+                        <div class="position-absolute bottom-0 start-0 end-0 p-4 bg-gradient-dark-top d-flex justify-content-between align-items-end">
+                            <div class="text-start">
+                                <h5 class="mb-0 fw-bold text-shadow">Active Presentation</h5>
+                                <span class="text-teal small text-shadow">Slide @(currentSlideIndex + 1)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Quick Controls *@
+            <div class="col-12 col-lg-4">
+                <div class="d-flex flex-column gap-4 h-100">
+                    @* Transport Controls *@
+                    <div class="card navy-light-bg text-white border-secondary shadow">
+                        <div class="card-body p-4 text-center">
+                            <h5 class="text-gray small text-uppercase tracking-wider mb-4">Playback</h5>
+                            <div class="d-grid gap-3">
+                                
+                                @* Next Button with Thumbnail *@
+                                <div class="thumbnail-btn-container mb-2">
+                                    <div class="thumbnail-preview mb-1 @(string.IsNullOrEmpty(nextThumbnail) ? "d-none" : "")">
+                                        <img src="@nextThumbnail" class="rounded border border-secondary" alt="Next Slide" />
+                                        <div class="thumbnail-label">NEXT</div>
+                                    </div>
+                                    <button class="btn btn-lg btn-teal-glow py-4 w-100" @onclick="NextSlideAsync">
+                                        <i class="fa-solid fa-forward-step fs-2 mb-2 d-block"></i>
+                                        <span class="fw-bold">NEXT SLIDE</span>
+                                    </button>
+                                </div>
+                                
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        @* Prev Button with Thumbnail *@
+                                        <div class="thumbnail-preview-mini mb-2 @(string.IsNullOrEmpty(prevThumbnail) ? "d-none" : "")">
+                                            <img src="@prevThumbnail" class="rounded border border-secondary w-100" alt="Prev Slide" />
+                                            <div class="thumbnail-label-mini">PREV</div>
+                                        </div>
+                                        <button class="btn btn-outline-secondary w-100 py-3" @onclick="PreviousSlideAsync">
+                                            <i class="fa-solid fa-backward-step me-2"></i> Prev
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="mt-auto h-100 d-flex flex-column justify-content-end">
+                                            <button class="btn btn-outline-danger w-100 py-3" @onclick="ClearSlideAsync">
+                                                <i class="fa-solid fa-circle-xmark me-2"></i> Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Clear All Button *@
+                    <button class="btn btn-danger btn-lg py-3 shadow" @onclick="ClearAllAsync">
+                        <i class="fa-solid fa-bomb me-2"></i> CLEAR ALL LAYERS
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a href="/propresenter" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Control Hub
+        </a>
+    </div>
+</div>
+
+<style>
+    .bg-gradient-dark-top {
+        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    }
+    .btn-teal-glow {
+        background-color: #008080;
+        border-color: #008080;
+        color: white;
+        box-shadow: 0 0 15px rgba(0, 128, 128, 0.3);
+        transition: all 0.2s ease;
+    }
+    .btn-teal-glow:hover {
+        background-color: #00a0a0;
+        border-color: #00a0a0;
+        color: white;
+        box-shadow: 0 0 20px rgba(0, 160, 160, 0.5);
+        transform: translateY(-2px);
+    }
+    .btn-teal-glow:active {
+        transform: translateY(0);
+    }
+    .text-shadow {
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    }
+    .thumbnail-btn-container {
+        position: relative;
+    }
+    .thumbnail-preview {
+        position: relative;
+        height: 80px;
+        overflow: hidden;
+    }
+    .thumbnail-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .thumbnail-label {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: rgba(0, 128, 128, 0.8);
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-bottom-right-radius: 4px;
+    }
+    .thumbnail-preview-mini {
+        position: relative;
+        height: 60px;
+        overflow: hidden;
+    }
+    .thumbnail-label-mini {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: rgba(100, 100, 100, 0.8);
+        color: white;
+        font-size: 9px;
+        font-weight: bold;
+        padding: 1px 4px;
+        border-bottom-right-radius: 4px;
+    }
+</style>
 
 @code {
+    private bool isConnected;
+    private bool isConnecting;
+    private string? statusMessage;
+    private Timer? pollTimer;
 
+    private int currentSlideIndex = -1;
+    private string? currentThumbnail;
+    private string? nextThumbnail;
+    private string? prevThumbnail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckConnectionAsync();
+        
+        pollTimer = new Timer(async (object? state) => 
+        {
+            await InvokeAsync(async () => 
+            {
+                await RefreshStatusAsync();
+            });
+        }, null, 1000, 1000); // Poll every second for better responsiveness
+    }
+
+    private async Task RefreshStatusAsync()
+    {
+        (bool Success, string Message) status = await ProPresenter.GetStatusAsync();
+        if (isConnected != status.Success)
+        {
+            isConnected = status.Success;
+            statusMessage = status.Message;
+            StateHasChanged();
+        }
+
+        if (isConnected)
+        {
+            int? index = await ProPresenter.GetActiveSlideIndexAsync();
+            if (index != null && index != currentSlideIndex)
+            {
+                currentSlideIndex = index.Value;
+                await UpdateThumbnailsAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task UpdateThumbnailsAsync()
+    {
+        if (currentSlideIndex == -1) return;
+
+        // Fetch thumbnails in parallel
+        Task<string?> currentTask = ProPresenter.GetThumbnailAsync("v1/presentation/active/thumbnail");
+        Task<string?> nextTask = ProPresenter.GetThumbnailAsync($"v1/presentation/active/{currentSlideIndex + 1}/thumbnail");
+        Task<string?> prevTask = currentSlideIndex > 0 
+            ? ProPresenter.GetThumbnailAsync($"v1/presentation/active/{currentSlideIndex - 1}/thumbnail")
+            : Task.FromResult<string?>(null);
+
+        await Task.WhenAll(currentTask, nextTask, prevTask);
+
+        currentThumbnail = await currentTask;
+        nextThumbnail = await nextTask;
+        prevThumbnail = await prevTask;
+    }
+
+    private async Task CheckConnectionAsync()
+    {
+        isConnecting = true;
+        statusMessage = null;
+        StateHasChanged();
+        try
+        {
+            (bool Success, string Message) result = await ProPresenter.GetStatusAsync();
+            isConnected = result.Success;
+            statusMessage = result.Message;
+            if (isConnected)
+            {
+                await RefreshStatusAsync();
+            }
+        }
+        finally
+        {
+            isConnecting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task NextSlideAsync()
+    {
+        await ProPresenter.NextSlideAsync();
+        await RefreshStatusAsync();
+    }
+
+    private async Task PreviousSlideAsync()
+    {
+        await ProPresenter.PreviousSlideAsync();
+        await RefreshStatusAsync();
+    }
+
+    private async Task ClearSlideAsync()
+    {
+        await ProPresenter.ClearSlideAsync();
+        await RefreshStatusAsync();
+    }
+
+    private async Task ClearAllAsync()
+    {
+        await ProPresenter.ClearAllAsync();
+        await RefreshStatusAsync();
+    }
+
+    public void Dispose()
+    {
+        pollTimer?.Dispose();
+    }
 }

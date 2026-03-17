@@ -1,19 +1,111 @@
-﻿@page "/media"
+@page "/media"
+@rendermode InteractiveServer
+
+@inject ProPresenterService ProPresenter
+@inject ILogger<Media> Logger
 
 <PageTitle>ProPresenter Media | Worship Console</PageTitle>
 
-<h3>Media</h3>
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold text-white mb-0">
+            <i class="fa-solid fa-play me-2 text-teal"></i> Media Playlists
+        </h2>
+        <div class="d-flex align-items-center gap-2">
+            @if (isConnected)
+            {
+                <span class="badge bg-success">Connected</span>
+            }
+            else
+            {
+                <span class="badge bg-danger">Disconnected</span>
+            }
+            <button class="btn btn-outline-secondary btn-sm" @onclick="CheckConnectionAsync" disabled="@isConnecting">
+                <i class="fa-solid fa-arrows-rotate @(isConnecting ? "fa-spin" : "") me-1"></i> Reconnect
+            </button>
+        </div>
+    </div>
 
-<p>
-    TODO:
-    <ul>
-        <li>Download media</li>
-        <li>Upload media</li>
-        <li>download audio from youtube</li>
-        <li>download video from youtube</li>
-    </ul>
-</p>
+    @if (!ProPresenter.IsConfigured)
+    {
+        <div class="alert alert-warning border-warning navy-light-bg text-white">
+            <h5 class="fw-bold"><i class="fa-solid fa-circle-exclamation me-2"></i> Not Configured</h5>
+            ProPresenter is not configured in <code>appsettings.json</code>. Please see <strong><a href="/docs/ProPresenter.md" class="text-teal">docs/ProPresenter.md</a></strong> for instructions.
+        </div>
+    }
+    else if (!isConnected)
+    {
+        <div class="alert alert-danger border-danger navy-light-bg text-white">
+            <h5 class="fw-bold"><i class="fa-solid fa-triangle-exclamation me-2"></i> Connection Failed</h5>
+            <p class="mb-2">Unable to connect to ProPresenter at the configured address.</p>
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="bg-dark bg-opacity-50 p-2 rounded small font-monospace border border-danger border-opacity-25 mb-2">
+                    @statusMessage
+                </div>
+            }
+            <p class="small text-gray mb-0">Ensure ProPresenter is running and the <strong>Network API</strong> is enabled in Network Settings.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card navy-light-bg text-white border-secondary mb-4">
+            <div class="card-body py-5 text-center">
+                <i class="fa-solid fa-code-merge display-4 text-teal mb-3"></i>
+                <h3 class="fw-bold">Integration in Development</h3>
+                <p class="text-gray lead">
+                    Remote control for media playlists is coming soon.
+                </p>
+            </div>
+        </div>
+    }
+
+    <div class="card bg-dark text-white border-secondary">
+        <div class="card-header border-secondary">
+            <h5 class="mb-0 fw-bold">Planned Features</h5>
+        </div>
+        <div class="card-body">
+            <ul class="text-gray mb-0">
+                <li>Trigger background videos and audio files.</li>
+                <li>View and switch between media playlists.</li>
+                <li>Download media from YouTube directly to ProPresenter (Coming later).</li>
+                <li>Upload local media files (Coming later).</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="/propresenter" class="btn btn-outline-secondary">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to ProPresenter Home
+        </a>
+    </div>
+</div>
 
 @code {
+    private bool isConnected;
+    private bool isConnecting;
+    private string? statusMessage;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckConnectionAsync();
+    }
+
+    private async Task CheckConnectionAsync()
+    {
+        isConnecting = true;
+        statusMessage = null;
+        StateHasChanged();
+        try
+        {
+            (bool Success, string Message) result = await ProPresenter.GetStatusAsync();
+            isConnected = result.Success;
+            statusMessage = result.Message;
+        }
+        finally
+        {
+            isConnecting = false;
+            StateHasChanged();
+        }
+    }
 }

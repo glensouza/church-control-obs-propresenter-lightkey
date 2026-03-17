@@ -4,19 +4,28 @@ A unified AV control panel for worship teams, combining OBS, ProPresenter, and L
 
 ---
 
+## Documentation
+
+- **[OBS Control](docs/OBS.md)** — Scene switching and output management.
+- **[Camera Control](docs/Cameras.md)** — PTZ and PoE power management.
+- **[ProPresenter](docs/ProPresenter.md)** — Slide and media control.
+- **[Planning Center](docs/PlanningCenter.md)** — Team and schedule integration.
+
+---
+
 ## Features
 
 - **OBS Control** — Switch scenes, manage streaming and recording, studio mode, virtual camera, replay buffer, profile/scene-collection switching
-- **ProPresenter** — Slide advancement and media control *(coming soon)*
+- **Camera Control** — Remote PTZ (Pan, Tilt, Zoom) for VISCA-over-IP cameras and UniFi PoE power management.
+- **ProPresenter** — Slide advancement and media control *(in development)*
 - **Lightkey** — Lighting cue triggers and intensity control *(coming soon)*
+- **Planning Center** — Real-time team assignment visibility.
 
 ---
 
 ## OBS Page
 
 The OBS control page connects directly to OBS Studio via the built-in WebSocket server (OBS-WebSocket v5). The connection target is configured server-side in `appsettings.json` — no URL entry is required by the operator.
-
-See **[docs/OBS.md](docs/OBS.md)** for full setup and usage instructions.
 
 ### Attribution
 

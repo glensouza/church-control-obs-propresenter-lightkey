@@ -1,9 +1,70 @@
-﻿@page "/propresenter"
+@page "/propresenter"
 
 <PageTitle>ProPresenter | Worship Console</PageTitle>
 
-<h3>ProPresenter</h3>
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="fw-bold text-white mb-0">
+            <i class="fa-solid fa-desktop me-2 text-teal"></i> ProPresenter Control
+        </h2>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card navy-light-bg text-white border-secondary h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold text-teal mb-3"><i class="fa-solid fa-layer-group me-2"></i> Control Hub</h5>
+                    <p class="text-gray mb-4">Select an area to control. Ensure ProPresenter is running and the Network API is enabled.</p>
+                    
+                    <div class="d-grid gap-3">
+                        <a href="/slides" class="btn btn-outline-teal text-start py-3 px-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-images fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Slide Control</div>
+                                    <div class="small text-gray">Advance, go back, and trigger specific slides.</div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right ms-auto"></i>
+                            </div>
+                        </a>
+                        
+                        <a href="/media" class="btn btn-outline-teal text-start py-3 px-4">
+                            <div class="d-flex align-items-center">
+                                <i class="fa-solid fa-play fs-4 me-3"></i>
+                                <div>
+                                    <div class="fw-bold">Media Playlists</div>
+                                    <div class="small text-gray">Trigger background videos and audio.</div>
+                                </div>
+                                <i class="fa-solid fa-chevron-right ms-auto"></i>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-body">
+                    <h5 class="fw-bold text-teal mb-3"><i class="fa-solid fa-circle-info me-2"></i> Connection Guide</h5>
+                    <p class="small text-gray mb-3">To connect this console to ProPresenter, follow these steps:</p>
+                    <ol class="small text-gray mb-4">
+                        <li class="mb-2">Open <strong>ProPresenter 7</strong>.</li>
+                        <li class="mb-2">Go to <strong>Settings → Network</strong>.</li>
+                        <li class="mb-2">Enable <strong>Network</strong> and <strong>ProPresenter Network API</strong>.</li>
+                        <li class="mb-2">Note the IP address and port (default <code>20000</code>).</li>
+                        <li class="mb-2">Verify the settings in <code>appsettings.json</code> match.</li>
+                    </ol>
+                    <div class="d-grid">
+                        <a href="/docs/ProPresenter.md" target="_blank" class="btn btn-sm btn-outline-secondary">
+                            <i class="fa-solid fa-book me-2"></i> View Full Documentation
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
-
 }
