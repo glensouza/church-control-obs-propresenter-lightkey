@@ -21,11 +21,23 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSingleton<UniFiService>();
 builder.Services.AddSingleton<ViscaService>();
+builder.Services.AddSingleton<MediaService>();
 builder.Services.AddScoped<ObsWebSocketService>();
 builder.Services.AddHttpClient<PcoApiService>();
 builder.Services.AddHttpClient<ProPresenterService>();
 
 WebApplication app = builder.Build();
+
+// Configure static files for media
+string mediaRootPath = app.Configuration["ProPresenter:MediaRootPath"] ?? Path.Combine(app.Environment.WebRootPath, "media");
+if (!Directory.Exists(mediaRootPath)) Directory.CreateDirectory(mediaRootPath);
+
+app.UseStaticFiles(); // Default wwwroot
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(mediaRootPath),
+    RequestPath = "/media-files"
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -48,7 +60,7 @@ await using (AsyncServiceScope scope = app.Services.CreateAsyncScope())
     // Seed Cameras if none exist
     if (!await db.Cameras.AnyAsync())
     {
-        var env = app.Environment;
+        IWebHostEnvironment env = app.Environment;
         if (env.IsDevelopment())
         {
             db.Cameras.AddRange(new[]

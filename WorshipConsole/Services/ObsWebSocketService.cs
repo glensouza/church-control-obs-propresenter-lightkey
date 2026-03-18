@@ -108,7 +108,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             string programScene = this.CurrentProgramScene;
             if (!string.IsNullOrEmpty(programScene))
             {
-                var res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
+                JsonNode? res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
                 {
                     ["sourceName"] = programScene,
                     ["imageFormat"] = "jpg",
@@ -123,7 +123,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
             string previewScene = this.CurrentPreviewScene;
             if (this.StudioMode && !string.IsNullOrEmpty(previewScene))
             {
-                var res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
+                JsonNode? res = await this.SendRequestAsync("GetSourceScreenshot", new JsonObject
                 {
                     ["sourceName"] = previewScene,
                     ["imageFormat"] = "jpg",

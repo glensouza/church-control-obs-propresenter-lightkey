@@ -1,0 +1,557 @@
+@page "/media"
+@rendermode InteractiveServer
+
+@inject ILogger<ProPresenterMedia> Logger
+@inject MediaService MediaService
+@inject IConfiguration Configuration
+
+<PageTitle>ProPresenter Media | Worship Console</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h2 class="fw-bold text-white mb-0">
+            <i class="fa-solid fa-play me-2 text-teal"></i> Media Management
+        </h2>
+        <div class="mt-2">
+            <a href="/propresenter" class="btn btn-sm btn-outline-secondary">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Control Hub
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert @(isError ? "alert-danger" : "alert-success") alert-dismissible fade show mb-4" role="alert">
+            @statusMessage
+            <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Welcome Video Section -->
+        <div class="col-lg-5">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-star me-2 text-warning"></i> Welcome Video</h5>
+                    @if (welcomeExists)
+                    {
+                        <span class="badge bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Missing</span>
+                    }
+                </div>
+                <div class="card-body">
+                    <p class="small text-gray mb-4">The welcome video is used as a loop before service starts. It has a static filename: <code>@welcomeFileName</code></p>
+                    
+                    @if (welcomeExists)
+                    {
+                        <div class="mb-4 text-center">
+                            <video controls class="video-preview w-100" src="@($"/media-files/{welcomeFolder}/{welcomeFileName}?v={versionQuery}")"></video>
+                        </div>
+                        <div class="d-flex gap-2 mb-4">
+                            <a href="@($"/media-files/{welcomeFolder}/{welcomeFileName}")" download class="btn btn-outline-teal flex-grow-1">
+                                <i class="fa-solid fa-download me-2"></i> Download
+                            </a>
+                        </div>
+                    }
+
+                    <div class="upload-zone p-3 border border-secondary border-dashed rounded text-center">
+                        <label class="form-label d-block mb-3">@(welcomeExists ? "Replace Welcome Video" : "Upload Welcome Video")</label>
+                        <InputFile OnChange="HandleWelcomeUpload" class="form-control form-control-sm bg-dark text-white border-secondary" accept="video/mp4,video/x-m4v,video/*" />
+                        @if (isUploadingWelcome)
+                        {
+                            <div class="mt-2 small text-teal"><i class="fa-solid fa-spinner fa-spin me-2"></i> Uploading...</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Background Videos Section -->
+        <div class="col-lg-7">
+            <div class="card bg-dark text-white border-secondary h-100">
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fa-solid fa-film me-2 text-teal"></i> Background Playlists</h5>
+                    <button class="btn btn-sm btn-teal" @onclick="() => showUploadBackground = !showUploadBackground">
+                        <i class="fa-solid fa-plus me-1"></i> Add Video
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    @if (showUploadBackground)
+                    {
+                        <div class="p-3 border-bottom border-secondary bg-navy-light">
+                            <h6 class="fw-bold mb-3">Upload New Background</h6>
+                            <div class="d-flex gap-2">
+                                <InputFile OnChange="HandleBackgroundUpload" class="form-control form-control-sm bg-dark text-white border-secondary" accept="video/mp4,video/x-m4v,video/*" multiple />
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => showUploadBackground = false">Cancel</button>
+                            </div>
+                            @if (isUploadingBackground)
+                            {
+                                <div class="mt-2 small text-teal"><i class="fa-solid fa-spinner fa-spin me-2"></i> Uploading...</div>
+                            }
+                        </div>
+                    }
+
+                    <div class="video-list" style="max-height: 400px; overflow-y: auto;">
+                        @if (backgroundVideos.Any())
+                        {
+                            @foreach (string video in backgroundVideos)
+                            {
+                                <div class="video-item p-3 border-bottom border-secondary d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center flex-grow-1 overflow-hidden">
+                                        <div class="thumbnail-container me-3 border border-secondary rounded overflow-hidden flex-shrink-0" style="width: 80px; height: 45px; background: #000;">
+                                            @{
+                                                string thumbName = Path.GetFileNameWithoutExtension(video) + ".jpg";
+                                            }
+                                            @if (MediaService.BackgroundThumbnailExists(video))
+                                            {
+                                                <img src="@($"/media-files/{backgroundFolder}/{thumbName}?v={versionQuery}")" class="w-100 h-100 object-fit-cover" alt="" />
+                                            }
+                                            else
+                                            {
+                                                <div class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                                    <i class="fa-solid fa-file-video text-secondary small"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="text-truncate">
+                                            <div class="fw-bold text-white text-truncate">@video</div>
+                                            <div class="small text-gray">Backgrounds / @video</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 ms-3">
+                                        <button class="btn btn-sm btn-outline-secondary" title="Preview" @onclick='() => PreviewVideo(video, backgroundFolder)'>
+                                            <i class="fa-solid fa-eye"></i>
+                                        </button>
+                                        <a href="@($"/media-files/{backgroundFolder}/{video}")" download class="btn btn-sm btn-outline-secondary" title="Download">
+                                            <i class="fa-solid fa-download"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger" title="Delete" @onclick='() => ConfirmDelete(video, "Background")'>
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="p-5 text-center text-gray">
+                                <i class="fa-solid fa-folder-open fs-1 mb-3 opacity-25"></i>
+                                <p>No background videos found.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YouTube Download Section -->
+        <div class="col-12">
+            <div class="card bg-dark text-white border-secondary">
+                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fa-brands fa-youtube me-2 text-danger"></i> YouTube Downloader</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-end g-3 mb-4">
+                        <div class="col-md-7">
+                            <label class="form-label small text-gray">YouTube URL</label>
+                            <input type="text" class="form-control" 
+                                   placeholder="https://www.youtube.com/watch?v=..." @bind="youtubeUrl" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-gray">Format</label>
+                            <select class="form-select" @bind="selectedFormat">
+                                <option value="@YouTubeDownloadFormat.Video">Video + Audio</option>
+                                <option value="@YouTubeDownloadFormat.Audio">Audio Only (MP3)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-teal w-100" @onclick="DownloadYouTube" disabled="@IsDownloadDisabled">
+                                @if (isDownloadingYouTube)
+                                {
+                                    <i class="fa-solid fa-spinner fa-spin me-1"></i>
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-download me-1"></i>
+                                }
+                                Download
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (isDownloadingYouTube)
+                    {
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-teal">Downloading...</span>
+                                <span>@((int)(downloadProgress * 100))%</span>
+                            </div>
+                            <div class="progress bg-navy-light" style="height: 8px;">
+                                <div class="progress-bar bg-teal" role="progressbar" style="width: @(downloadProgress * 100)%;"></div>
+                            </div>
+                        </div>
+                    }
+
+                    <h6 class="fw-bold mb-3">Recent Downloads</h6>
+                    <div class="video-list border border-secondary rounded overflow-hidden" style="max-height: 300px; overflow-y: auto;">
+                        @if (youtubeVideos.Any())
+                        {
+                            @foreach (string video in youtubeVideos)
+                            {
+                                <div class="video-item p-2 px-3 border-bottom border-secondary d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center flex-grow-1 overflow-hidden">
+                                        <div class="thumbnail-container me-3 border border-secondary rounded overflow-hidden flex-shrink-0" style="width: 80px; height: 45px; background: #000;">
+                                            @{
+                                                string thumbName = Path.GetFileNameWithoutExtension(video) + ".jpg";
+                                            }
+                                            @if (MediaService.YouTubeDownloadExists(thumbName))
+                                            {
+                                                <img src="@($"/media-files/{youtubeFolder}/{thumbName}?v={DateTime.Now.Ticks}")" class="w-100 h-100 object-fit-cover" alt="" />
+                                            }
+                                            else if (IsVideo(video))
+                                            {
+                                                <div class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                                    <i class="fa-solid fa-file-video text-secondary small"></i>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="w-100 h-100 d-flex align-items-center justify-content-center">
+                                                    <i class="fa-solid fa-file-audio text-teal small"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="text-truncate">
+                                            <div class="fw-bold text-white text-truncate small">@video</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-1 ms-3">
+                                        <button class="btn btn-sm btn-outline-secondary py-0" title="Preview" @onclick='() => PreviewVideo(video, youtubeFolder)'>
+                                            <i class="fa-solid fa-eye small"></i>
+                                        </button>
+                                        <a href="@($"/media-files/{youtubeFolder}/{video}")" download class="btn btn-sm btn-outline-secondary py-0" title="Download">
+                                            <i class="fa-solid fa-download small"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger py-0" title="Delete" @onclick='() => ConfirmDelete(video, "YouTube")'>
+                                            <i class="fa-solid fa-trash-can small"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="p-4 text-center text-gray small">
+                                No YouTube downloads found.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Future TODOs Section -->
+    <div class="card bg-dark text-white border-secondary mt-4">
+        <div class="card-header border-secondary">
+            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list-check me-2"></i> Upcoming Media Features</h5>
+        </div>
+        <div class="card-body">
+            <div class="row small">
+                <div class="col-md-6">
+                    <div class="d-flex mb-2">
+                        <i class="fa-solid fa-file-powerpoint text-warning me-2 mt-1"></i>
+                        <div>
+                            <div class="fw-bold">PowerPoint Conversion</div>
+                            <div class="text-gray">Upload slides and convert them to native ProPresenter cues.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+@if (previewingVideo != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary shadow-lg">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-truncate">@previewingVideo</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => previewingVideo = null"></button>
+                </div>
+                <div class="modal-body p-0 text-center bg-black">
+                    @if (previewingVideo.EndsWith(".mp3") || previewingVideo.EndsWith(".m4a") || previewingVideo.EndsWith(".opus"))
+                    {
+                        <div class="p-5">
+                            <i class="fa-solid fa-music fa-5x text-teal mb-4"></i>
+                            <audio controls autoplay class="w-100" src="@($"/media-files/{previewingFolder}/{previewingVideo}")"></audio>
+                        </div>
+                    }
+                    else
+                    {
+                        <video controls autoplay class="w-100" style="max-height: 70vh;" src="@($"/media-files/{previewingFolder}/{previewingVideo}")"></video>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (videoToDelete != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.8);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-secondary">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => videoToDelete = null"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete <strong>@videoToDelete</strong> from <strong>@deleteSource</strong>? This cannot be undone.
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="() => videoToDelete = null">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteVideo">Delete Permanently</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum YouTubeDownloadFormat
+    {
+        Video,
+        Audio
+    }
+
+    private string versionQuery = DateTime.Now.Ticks.ToString(); // Used to force thumbnail refresh
+    private string? statusMessage;
+    private bool isError;
+    private bool welcomeExists;
+    private string welcomeFolder = "";
+    private string welcomeFileName = "";
+    private string backgroundFolder = "";
+    private string youtubeFolder = "";
+    private List<string> backgroundVideos = [];
+    private List<string> youtubeVideos = [];
+    
+    private bool isUploadingWelcome;
+    private bool isUploadingBackground;
+    private bool showUploadBackground;
+    private string? previewingVideo;
+    private string? previewingFolder;
+    private string? videoToDelete;
+    private string? deleteSource;
+
+    // YouTube Downloader State
+    private string youtubeUrl = "";
+    private YouTubeDownloadFormat selectedFormat = YouTubeDownloadFormat.Video;
+    private bool isDownloadingYouTube;
+    private double downloadProgress;
+
+    private bool IsDownloadDisabled => string.IsNullOrWhiteSpace(youtubeUrl) || isDownloadingYouTube;
+
+    protected override async Task OnInitializedAsync()
+    {
+        welcomeFolder = Configuration["ProPresenter:WelcomeVideoFolder"] ?? "Welcome";
+        welcomeFileName = Configuration["ProPresenter:WelcomeVideoFileName"] ?? "Welcome.mp4";
+        backgroundFolder = Configuration["ProPresenter:BackgroundVideosFolder"] ?? "Backgrounds";
+        youtubeFolder = Configuration["ProPresenter:YouTubeDownloadsFolder"] ?? "YouTube";
+        
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        welcomeExists = MediaService.WelcomeVideoExists();
+        backgroundVideos = MediaService.ListBackgroundVideos();
+        youtubeVideos = MediaService.ListYouTubeDownloads().Where(v => !v.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)).ToList();
+        
+        versionQuery = DateTime.Now.Ticks.ToString();
+
+        // Trigger thumbnail generation for any files that might have been added externally
+        _ = MediaService.EnsureThumbnailsAsync(MediaService.GetBackgroundVideosFolderPath());
+        _ = MediaService.EnsureThumbnailsAsync(MediaService.GetYouTubeFolderPath());
+        
+        // If welcome video exists but no thumbnail, generate it
+        if (welcomeExists)
+        {
+            string welcomePath = MediaService.GetWelcomeVideoFilePath();
+            string thumbPath = Path.ChangeExtension(welcomePath, ".jpg");
+            if (!File.Exists(thumbPath))
+            {
+                _ = MediaService.SaveWelcomeVideoAsync(Stream.Null, ""); // This is a bit hacky, let's just expose a better way or call internal
+            }
+        }
+    }
+
+    private bool IsVideo(string fileName)
+    {
+        string ext = Path.GetExtension(fileName).ToLower();
+        return ext is ".mp4" or ".webm" or ".m4v" or ".mov";
+    }
+
+    private async Task HandleWelcomeUpload(InputFileChangeEventArgs e)
+    {
+        isUploadingWelcome = true;
+        statusMessage = null;
+
+        try
+        {
+            IBrowserFile? file = e.File;
+            if (file != null)
+            {
+                await using Stream stream = file.OpenReadStream(maxAllowedSize: 500 * 1024 * 1024); // 500MB max
+                bool success = await MediaService.SaveWelcomeVideoAsync(stream, file.Name);
+                if (success)
+                {
+                    statusMessage = "Welcome video updated successfully.";
+                    isError = false;
+                    await RefreshData();
+                }
+                else
+                {
+                    statusMessage = "Failed to save welcome video.";
+                    isError = true;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Upload error: {ex.Message}";
+            isError = true;
+            Logger.LogError(ex, "Welcome upload error");
+        }
+        finally
+        {
+            isUploadingWelcome = false;
+        }
+    }
+
+    private async Task HandleBackgroundUpload(InputFileChangeEventArgs e)
+    {
+        isUploadingBackground = true;
+        statusMessage = null;
+        int count = 0;
+
+        try
+        {
+            foreach (IBrowserFile file in e.GetMultipleFiles())
+            {
+                await using Stream stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 1024); // 1GB max
+                bool success = await MediaService.SaveBackgroundVideoAsync(stream, file.Name);
+                if (success) count++;
+            }
+
+            if (count > 0)
+            {
+                statusMessage = $"Successfully uploaded {count} background video(s).";
+                isError = false;
+                showUploadBackground = false;
+                await RefreshData();
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Upload error: {ex.Message}";
+            isError = true;
+            Logger.LogError(ex, "Background upload error");
+        }
+        finally
+        {
+            isUploadingBackground = false;
+        }
+    }
+
+    private async Task DownloadYouTube()
+    {
+        if (string.IsNullOrWhiteSpace(youtubeUrl)) return;
+
+        bool downloadAudioOnly = selectedFormat == YouTubeDownloadFormat.Audio;
+        isDownloadingYouTube = true;
+        downloadProgress = 0;
+        statusMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            Progress<double> progress = new(p => {
+                downloadProgress = p;
+                InvokeAsync(StateHasChanged);
+            });
+
+            (bool Success, string Message) result = await MediaService.DownloadYouTubeAsync(youtubeUrl, downloadAudioOnly, progress);
+            
+            if (result.Success)
+            {
+                statusMessage = $"Download complete: {result.Message}";
+                isError = false;
+                youtubeUrl = "";
+                await RefreshData();
+            }
+            else
+            {
+                statusMessage = $"Download failed: {result.Message}";
+                isError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"YouTube error: {ex.Message}";
+            isError = true;
+            Logger.LogError(ex, "YouTube download error");
+        }
+        finally
+        {
+            isDownloadingYouTube = false;
+            StateHasChanged();
+        }
+    }
+
+    private void PreviewVideo(string fileName, string folder)
+    {
+        previewingVideo = fileName;
+        previewingFolder = folder;
+    }
+
+    private void ConfirmDelete(string fileName, string source)
+    {
+        videoToDelete = fileName;
+        deleteSource = source;
+    }
+
+    private void DeleteVideo()
+    {
+        if (videoToDelete != null)
+        {
+            bool success = deleteSource switch
+            {
+                "Background" => MediaService.DeleteBackgroundVideo(videoToDelete),
+                "YouTube" => MediaService.DeleteYouTubeDownload(videoToDelete),
+                _ => false
+            };
+
+            if (success)
+            {
+                statusMessage = $"Deleted {videoToDelete}.";
+                isError = false;
+                _ = RefreshData();
+            }
+            else
+            {
+                statusMessage = "Failed to delete file.";
+                isError = true;
+            }
+            videoToDelete = null;
+            deleteSource = null;
+        }
+    }
+}

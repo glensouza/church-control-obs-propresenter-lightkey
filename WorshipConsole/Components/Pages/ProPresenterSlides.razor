@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 
 @inject ProPresenterService ProPresenter
-@inject ILogger<Slides> Logger
+@inject ILogger<ProPresenterSlides> Logger
 @implements IDisposable
 
 <PageTitle>ProPresenter Slides | Worship Console</PageTitle>
@@ -64,21 +64,30 @@
                     <div class="card-body p-0 position-relative bg-black d-flex align-items-center justify-content-center" style="min-height: 400px;">
                         @if (!string.IsNullOrEmpty(currentThumbnail))
                         {
-                            <img src="@currentThumbnail" class="img-fluid w-100 h-100 object-fit-contain" alt="Current Slide" />
+                            <img src="@currentThumbnail" class="img-fluid w-100 h-100 object-fit-contain @(isUpdatingThumbnails ? "opacity-50" : "")" alt="Current Slide" />
                         }
                         else
                         {
                             <div class="text-center p-5">
                                 <i class="fa-solid fa-display display-1 text-gray opacity-25 mb-3"></i>
-                                <h4 class="text-gray fw-light">Active Slide Content</h4>
-                                <p class="text-gray small opacity-50">Slide rendering in progress...</p>
+                                <h4 class="text-gray fw-light">No Active Slide</h4>
+                                <p class="text-gray small opacity-50">Select a slide in ProPresenter to begin.</p>
+                            </div>
+                        }
+                        
+                        @if (isUpdatingThumbnails)
+                        {
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <div class="spinner-border text-teal" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
                             </div>
                         }
                         
                         <div class="position-absolute bottom-0 start-0 end-0 p-4 bg-gradient-dark-top d-flex justify-content-between align-items-end">
                             <div class="text-start">
-                                <h5 class="mb-0 fw-bold text-shadow">Active Presentation</h5>
-                                <span class="text-teal small text-shadow">Slide @(currentSlideIndex + 1)</span>
+                                <h5 class="mb-0 fw-bold text-shadow">@(presentationName ?? "Active Presentation")</h5>
+                                <span class="text-teal small text-shadow">Slide @(currentSlideIndex >= 0 ? (currentSlideIndex + 1).ToString() : "—")</span>
                             </div>
                         </div>
                     </div>
@@ -97,29 +106,29 @@
                                 @* Next Button with Thumbnail *@
                                 <div class="thumbnail-btn-container mb-2">
                                     <div class="thumbnail-preview mb-1 @(string.IsNullOrEmpty(nextThumbnail) ? "d-none" : "")">
-                                        <img src="@nextThumbnail" class="rounded border border-secondary" alt="Next Slide" />
+                                        <img src="@nextThumbnail" class="rounded border border-secondary @(isUpdatingThumbnails ? "opacity-50" : "")" alt="Next Slide" />
                                         <div class="thumbnail-label">NEXT</div>
                                     </div>
-                                    <button class="btn btn-lg btn-teal-glow py-4 w-100" @onclick="NextSlideAsync">
+                                    <button class="btn btn-lg btn-teal-glow py-4 w-100 shadow-sm" @onclick="NextSlideAsync" disabled="@isConnecting">
                                         <i class="fa-solid fa-forward-step fs-2 mb-2 d-block"></i>
                                         <span class="fw-bold">NEXT SLIDE</span>
                                     </button>
                                 </div>
                                 
                                 <div class="row g-3">
-                                    <div class="col-6">
+                                    <div class="col-6 text-center">
                                         @* Prev Button with Thumbnail *@
                                         <div class="thumbnail-preview-mini mb-2 @(string.IsNullOrEmpty(prevThumbnail) ? "d-none" : "")">
-                                            <img src="@prevThumbnail" class="rounded border border-secondary w-100" alt="Prev Slide" />
+                                            <img src="@prevThumbnail" class="rounded border border-secondary w-100 @(isUpdatingThumbnails ? "opacity-50" : "")" alt="Prev Slide" />
                                             <div class="thumbnail-label-mini">PREV</div>
                                         </div>
-                                        <button class="btn btn-outline-secondary w-100 py-3" @onclick="PreviousSlideAsync">
+                                        <button class="btn btn-outline-secondary w-100 py-3" @onclick="PreviousSlideAsync" disabled="@isConnecting">
                                             <i class="fa-solid fa-backward-step me-2"></i> Prev
                                         </button>
                                     </div>
                                     <div class="col-6">
                                         <div class="mt-auto h-100 d-flex flex-column justify-content-end">
-                                            <button class="btn btn-outline-danger w-100 py-3" @onclick="ClearSlideAsync">
+                                            <button class="btn btn-outline-danger w-100 py-3" @onclick="ClearSlideAsync" title="Clear Presentation Layer" disabled="@isConnecting">
                                                 <i class="fa-solid fa-circle-xmark me-2"></i> Clear
                                             </button>
                                         </div>
@@ -130,7 +139,7 @@
                     </div>
 
                     @* Clear All Button *@
-                    <button class="btn btn-danger btn-lg py-3 shadow" @onclick="ClearAllAsync">
+                    <button class="btn btn-danger btn-lg py-3 shadow" @onclick="ClearAllAsync" disabled="@isConnecting">
                         <i class="fa-solid fa-bomb me-2"></i> CLEAR ALL LAYERS
                     </button>
                 </div>
@@ -145,134 +154,113 @@
     </div>
 </div>
 
-<style>
-    .bg-gradient-dark-top {
-        background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
-    }
-    .btn-teal-glow {
-        background-color: #008080;
-        border-color: #008080;
-        color: white;
-        box-shadow: 0 0 15px rgba(0, 128, 128, 0.3);
-        transition: all 0.2s ease;
-    }
-    .btn-teal-glow:hover {
-        background-color: #00a0a0;
-        border-color: #00a0a0;
-        color: white;
-        box-shadow: 0 0 20px rgba(0, 160, 160, 0.5);
-        transform: translateY(-2px);
-    }
-    .btn-teal-glow:active {
-        transform: translateY(0);
-    }
-    .text-shadow {
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    }
-    .thumbnail-btn-container {
-        position: relative;
-    }
-    .thumbnail-preview {
-        position: relative;
-        height: 80px;
-        overflow: hidden;
-    }
-    .thumbnail-preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    .thumbnail-label {
-        position: absolute;
-        top: 0;
-        left: 0;
-        background: rgba(0, 128, 128, 0.8);
-        color: white;
-        font-size: 10px;
-        font-weight: bold;
-        padding: 2px 6px;
-        border-bottom-right-radius: 4px;
-    }
-    .thumbnail-preview-mini {
-        position: relative;
-        height: 60px;
-        overflow: hidden;
-    }
-    .thumbnail-label-mini {
-        position: absolute;
-        top: 0;
-        left: 0;
-        background: rgba(100, 100, 100, 0.8);
-        color: white;
-        font-size: 9px;
-        font-weight: bold;
-        padding: 1px 4px;
-        border-bottom-right-radius: 4px;
-    }
-</style>
-
 @code {
     private bool isConnected;
     private bool isConnecting;
+    private bool isUpdatingThumbnails;
     private string? statusMessage;
-    private Timer? pollTimer;
+    private PeriodicTimer? pollTimer;
+    private CancellationTokenSource? cts;
 
     private int currentSlideIndex = -1;
+    private string? presentationUuid;
+    private string? presentationName;
     private string? currentThumbnail;
     private string? nextThumbnail;
     private string? prevThumbnail;
+    
+    private DateTime lastThumbnailUpdate = DateTime.MinValue;
 
     protected override async Task OnInitializedAsync()
     {
         await CheckConnectionAsync();
         
-        pollTimer = new Timer(async (object? state) => 
-        {
-            await InvokeAsync(async () => 
-            {
-                await RefreshStatusAsync();
-            });
-        }, null, 1000, 1000); // Poll every second for better responsiveness
+        // Polling loop - 2 seconds is much more reasonable
+        cts = new CancellationTokenSource();
+        _ = PollStatusAsync(cts.Token);
     }
 
-    private async Task RefreshStatusAsync()
+    private async Task PollStatusAsync(CancellationToken token)
+    {
+        pollTimer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await pollTimer.WaitForNextTickAsync(token))
+            {
+                await RefreshStatusAsync();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task RefreshStatusAsync(bool forceThumbnails = false)
     {
         (bool Success, string Message) status = await ProPresenter.GetStatusAsync();
-        if (isConnected != status.Success)
-        {
-            isConnected = status.Success;
-            statusMessage = status.Message;
-            StateHasChanged();
-        }
+        isConnected = status.Success;
+        statusMessage = status.Message;
 
         if (isConnected)
         {
-            int? index = await ProPresenter.GetActiveSlideIndexAsync();
-            if (index != null && index != currentSlideIndex)
+            (string? Uuid, string? Name, int? Index) details = await ProPresenter.GetActivePresentationDetailsAsync();
+            
+            bool uuidChanged = details.Uuid != presentationUuid;
+            bool indexChanged = details.Index != currentSlideIndex;
+            bool intervalPassed = (DateTime.Now - lastThumbnailUpdate).TotalSeconds >= 5;
+
+            if (uuidChanged || indexChanged || forceThumbnails || (intervalPassed && !string.IsNullOrEmpty(presentationUuid)))
             {
-                currentSlideIndex = index.Value;
+                presentationUuid = details.Uuid;
+                presentationName = details.Name;
+                currentSlideIndex = details.Index ?? -1;
+                
                 await UpdateThumbnailsAsync();
-                StateHasChanged();
+                lastThumbnailUpdate = DateTime.Now;
             }
+        }
+        else
+        {
+            presentationUuid = null;
+            presentationName = null;
+            currentSlideIndex = -1;
+            currentThumbnail = null;
+            nextThumbnail = null;
+            prevThumbnail = null;
         }
     }
 
     private async Task UpdateThumbnailsAsync()
     {
-        if (currentSlideIndex == -1) return;
+        if (string.IsNullOrEmpty(presentationUuid) || currentSlideIndex < 0)
+        {
+            currentThumbnail = null;
+            nextThumbnail = null;
+            prevThumbnail = null;
+            return;
+        }
 
-        // Fetch thumbnails in parallel
-        Task<string?> currentTask = ProPresenter.GetThumbnailAsync("v1/presentation/active/thumbnail");
-        Task<string?> nextTask = ProPresenter.GetThumbnailAsync($"v1/presentation/active/{currentSlideIndex + 1}/thumbnail");
-        Task<string?> prevTask = currentSlideIndex > 0 
-            ? ProPresenter.GetThumbnailAsync($"v1/presentation/active/{currentSlideIndex - 1}/thumbnail")
-            : Task.FromResult<string?>(null);
+        isUpdatingThumbnails = true;
+        StateHasChanged();
 
-        await Task.WhenAll(currentTask, nextTask, prevTask);
+        try
+        {
+            // Exact working path: v1/presentation/{uuid}/thumbnail/{index}
+            Task<string?> currentTask = ProPresenter.GetThumbnailAsync($"v1/presentation/{presentationUuid}/thumbnail/{currentSlideIndex}");
+            Task<string?> nextTask = ProPresenter.GetThumbnailAsync($"v1/presentation/{presentationUuid}/thumbnail/{currentSlideIndex + 1}");
+            Task<string?> prevTask = currentSlideIndex > 0 
+                ? ProPresenter.GetThumbnailAsync($"v1/presentation/{presentationUuid}/thumbnail/{currentSlideIndex - 1}")
+                : Task.FromResult<string?>(null);
 
-        currentThumbnail = await currentTask;
-        nextThumbnail = await nextTask;
-        prevThumbnail = await prevTask;
+            await Task.WhenAll(currentTask, nextTask, prevTask);
+
+            currentThumbnail = await currentTask;
+            nextThumbnail = await nextTask;
+            prevThumbnail = await prevTask;
+        }
+        finally
+        {
+            isUpdatingThumbnails = false;
+        }
     }
 
     private async Task CheckConnectionAsync()
@@ -287,7 +275,7 @@
             statusMessage = result.Message;
             if (isConnected)
             {
-                await RefreshStatusAsync();
+                await RefreshStatusAsync(true);
             }
         }
         finally
@@ -300,29 +288,35 @@
     private async Task NextSlideAsync()
     {
         await ProPresenter.NextSlideAsync();
-        await RefreshStatusAsync();
+        await Task.Delay(200); 
+        await RefreshStatusAsync(true);
     }
 
     private async Task PreviousSlideAsync()
     {
         await ProPresenter.PreviousSlideAsync();
-        await RefreshStatusAsync();
+        await Task.Delay(200);
+        await RefreshStatusAsync(true);
     }
 
     private async Task ClearSlideAsync()
     {
         await ProPresenter.ClearSlideAsync();
-        await RefreshStatusAsync();
+        await Task.Delay(200);
+        await RefreshStatusAsync(true);
     }
 
     private async Task ClearAllAsync()
     {
         await ProPresenter.ClearAllAsync();
-        await RefreshStatusAsync();
+        await Task.Delay(200);
+        await RefreshStatusAsync(true);
     }
 
     public void Dispose()
     {
+        cts?.Cancel();
+        cts?.Dispose();
         pollTimer?.Dispose();
     }
 }

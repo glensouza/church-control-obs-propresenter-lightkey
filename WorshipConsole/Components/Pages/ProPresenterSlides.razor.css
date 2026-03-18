@@ -1,0 +1,67 @@
+.bg-gradient-dark-top {
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+}
+.btn-teal-glow {
+    background-color: #008080;
+    border-color: #008080;
+    color: white;
+    box-shadow: 0 0 15px rgba(0, 128, 128, 0.3);
+    transition: all 0.2s ease;
+}
+.btn-teal-glow:hover {
+    background-color: #00a0a0;
+    border-color: #00a0a0;
+    color: white;
+    box-shadow: 0 0 20px rgba(0, 160, 160, 0.5);
+    transform: translateY(-2px);
+}
+.btn-teal-glow:active {
+    transform: translateY(0);
+}
+.text-shadow {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+.thumbnail-btn-container {
+    position: relative;
+}
+.thumbnail-preview {
+    position: relative;
+    height: 100px;
+    overflow: hidden;
+    background-color: #000;
+}
+.thumbnail-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.thumbnail-label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(0, 128, 128, 0.9);
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-bottom-right-radius: 4px;
+    z-index: 2;
+}
+.thumbnail-preview-mini {
+    position: relative;
+    height: 60px;
+    overflow: hidden;
+    background-color: #000;
+}
+.thumbnail-label-mini {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(100, 100, 100, 0.9);
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 1px 6px;
+    border-bottom-right-radius: 4px;
+    z-index: 2;
+}

@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using WorshipConsole.Models;
 
@@ -10,11 +9,6 @@ public class ProPresenterService
     private readonly IConfiguration configuration;
     private readonly ILogger<ProPresenterService> logger;
     private readonly ProPresenterConfiguration config;
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
 
     public ProPresenterService(HttpClient httpClient, IConfiguration configuration, ILogger<ProPresenterService> logger)
     {
@@ -37,158 +31,102 @@ public class ProPresenterService
 
     public async Task<(bool Success, string Message)> GetStatusAsync()
     {
-        string? requestUrl = null;
         try
         {
-            // Try standard version endpoint
-            string url = "version";
-            if (!string.IsNullOrEmpty(this.config.Password))
-            {
-                url += $"?password={Uri.EscapeDataString(this.config.Password)}";
-            }
-            
-            requestUrl = $"{this.httpClient.BaseAddress}{url}";
+            string url = this.AppendPassword("version");
             HttpResponseMessage response = await this.httpClient.GetAsync(url);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                return (true, "Connected");
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                // Try a fallback to see if the API is even there
-                HttpResponseMessage docResponse = await this.httpClient.GetAsync("openapi.json");
-                if (docResponse.IsSuccessStatusCode)
-                {
-                    return (false, "API found but /version 404ed. Try updating ProPresenter.");
-                }
-                return (false, "404 Not Found. You might be hitting the 'Remote' port instead of the 'Network API' port. Check ProPresenter settings.");
-            }
-
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return (false, "Unauthorized (401). Check your API password in appsettings.json.");
-            }
-
-            string error = $"ProPresenter returned {response.StatusCode} ({(int)response.StatusCode})";
-            this.logger.LogWarning("{Error} for {Url}", error, requestUrl);
-            return (false, error);
-        }
-        catch (HttpRequestException ex)
-        {
-            string error;
-            string message = ex.Message;
-            string? innerMessage = ex.InnerException?.Message;
-
-            bool looksNonHttp = message.Contains("invalid status line", StringComparison.OrdinalIgnoreCase)
-                                || (innerMessage != null && innerMessage.Contains("invalid status line", StringComparison.OrdinalIgnoreCase));
-
-            if (looksNonHttp)
-            {
-                error = "Received a non-HTTP response. Use the ProPresenter Network API port (default 20000) with API enabled; avoid the TCP/IP, Remote, or Stage App ports.";
-            }
-            else
-            {
-                error = $"Network error: {message}";
-                if (innerMessage != null) error += $" ({innerMessage})";
-            }
-
-            this.logger.LogWarning("HTTP error connecting to ProPresenter at {Url}: {Message}", requestUrl ?? "unknown", error);
-            return (false, error);
-        }
-        catch (TaskCanceledException)
-        {
-            string error = "Connection timed out (2s). Is the IP/Port correct?";
-            return (false, error);
+            return response.IsSuccessStatusCode ? (true, "Connected") : (false, $"Status code: {response.StatusCode}");
         }
         catch (Exception ex)
         {
-            string error = $"Unexpected error: {ex.Message}";
-            this.logger.LogWarning(ex, "Unexpected error connecting to ProPresenter at {Url}", requestUrl ?? "unknown");
-            return (false, error);
+            return (false, $"Connection error: {ex.Message}");
         }
     }
 
-    public async Task<bool> NextSlideAsync()
+    public async Task<(string? Uuid, string? Name, int? Index)> GetActivePresentationDetailsAsync()
     {
-        return await this.SendTriggerAsync("v1/presentation/active/next/trigger");
-    }
+        string query = this.GetQueryString();
+        string? uuid = null;
+        string? name = null;
+        int? index = null;
 
-    public async Task<bool> PreviousSlideAsync()
-    {
-        return await this.SendTriggerAsync("v1/presentation/active/previous/trigger");
-    }
-
-    public async Task<bool> TriggerSlideAsync(int index)
-    {
-        return await this.SendTriggerAsync($"v1/presentation/active/{index}/trigger");
-    }
-
-    public async Task<int?> GetActiveSlideIndexAsync()
-    {
         try
         {
-            string query = string.IsNullOrEmpty(this.config.Password) ? "" : $"?password={Uri.EscapeDataString(this.config.Password)}";
-            HttpResponseMessage response = await this.httpClient.GetAsync($"v1/presentation/active/slide_index{query}");
-            if (!response.IsSuccessStatusCode) return null;
-
-            string json = await response.Content.ReadAsStringAsync();
-            using JsonDocument doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("index", out JsonElement indexProp))
+            // 1. Get active presentation structure
+            HttpResponseMessage response = await this.httpClient.GetAsync($"v1/presentation/active{query}");
+            if (response.IsSuccessStatusCode)
             {
-                return indexProp.GetInt32();
+                string json = await response.Content.ReadAsStringAsync();
+                using JsonDocument doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("presentation", out JsonElement pres))
+                {
+                    if (pres.TryGetProperty("id", out JsonElement id))
+                    {
+                        if (id.TryGetProperty("uuid", out JsonElement u)) uuid = u.GetString();
+                        if (id.TryGetProperty("name", out JsonElement n)) name = n.GetString();
+                        if (id.TryGetProperty("index", out JsonElement i)) index = i.GetInt32();
+                    }
+                    
+                    // Fallback for index
+                    if (!index.HasValue && pres.TryGetProperty("slide_index", out JsonElement si)) index = si.GetInt32();
+                }
             }
-            return null;
+
+            // 2. If index is still 0 (common bug in some Pro7 versions) or we want to double check,
+            // we can try fetching transport state, but since we saw transport was empty in logs, 
+            // we'll stick to the active presentation object for now.
         }
-        catch
-        {
-            return null;
-        }
+        catch { /* Ignore and return what we have */ }
+
+        return (uuid, name, index);
     }
 
     public async Task<string?> GetThumbnailAsync(string path)
     {
         try
         {
-            string query = string.IsNullOrEmpty(this.config.Password) ? "" : $"?password={Uri.EscapeDataString(this.config.Password)}";
-            HttpResponseMessage response = await this.httpClient.GetAsync($"{path}{query}");
+            // Use current ticks as a cache-buster
+            string separator = path.Contains('?') ? "&" : "?";
+            string url = this.AppendPassword($"{path}{separator}t={DateTime.UtcNow.Ticks}");
+            
+            HttpResponseMessage response = await this.httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode) return null;
 
             byte[] data = await response.Content.ReadAsByteArrayAsync();
-            return $"data:image/jpeg;base64,{Convert.ToBase64String(data)}";
+            return data.Length == 0 ? null : $"data:image/jpeg;base64,{Convert.ToBase64String(data)}";
         }
-        catch
-        {
-            return null;
-        }
+        catch { return null; }
     }
+
+    public async Task<bool> NextSlideAsync() => await this.SendTriggerAsync("v1/presentation/active/next/trigger");
+    public async Task<bool> PreviousSlideAsync() => await this.SendTriggerAsync("v1/presentation/active/previous/trigger");
 
     public async Task<bool> ClearAllAsync()
     {
-        return await this.SendTriggerAsync("v1/clear/all");
-    }
-
-    public async Task<bool> ClearSlideAsync()
-    {
+        // Multi-layer clear for thoroughness
+        await this.SendTriggerAsync("v1/clear/layer/media");
+        await this.SendTriggerAsync("v1/clear/layer/video_input");
         return await this.SendTriggerAsync("v1/clear/layer/slide");
     }
+
+    public async Task<bool> ClearSlideAsync() => await this.SendTriggerAsync("v1/clear/layer/slide");
 
     private async Task<bool> SendTriggerAsync(string url)
     {
         try
         {
-            if (!string.IsNullOrEmpty(this.config.Password))
-            {
-                url += $"?password={Uri.EscapeDataString(this.config.Password)}";
-            }
-            HttpResponseMessage response = await this.httpClient.GetAsync(url);
+            HttpResponseMessage response = await this.httpClient.GetAsync(this.AppendPassword(url));
             return response.IsSuccessStatusCode;
         }
-        catch (Exception ex)
-        {
-            this.logger.LogError(ex, "Error triggering ProPresenter endpoint {Url}", url);
-            return false;
-        }
+        catch { return false; }
+    }
+
+    private string GetQueryString() => string.IsNullOrEmpty(this.config.Password) ? "" : $"?password={Uri.EscapeDataString(this.config.Password)}";
+
+    private string AppendPassword(string path)
+    {
+        if (string.IsNullOrEmpty(this.config.Password)) return path;
+        string separator = path.Contains('?') ? "&" : "?";
+        return $"{path}{separator}password={Uri.EscapeDataString(this.config.Password)}";
     }
 }

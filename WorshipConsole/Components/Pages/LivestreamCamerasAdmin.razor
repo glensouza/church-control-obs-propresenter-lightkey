@@ -1,9 +1,5 @@
 @page "/admin/cameras"
 @rendermode InteractiveServer
-
-@using Microsoft.EntityFrameworkCore
-@using WorshipConsole.Database
-@using WorshipConsole.Models
 @inject PageantDb Db
 @inject NavigationManager Navigation
 
@@ -48,7 +44,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var cam in cameras)
+                    @foreach (CameraInfo cam in cameras)
                     {
                         <tr>
                             <td>
@@ -190,7 +186,7 @@
         }
         else
         {
-            var cam = await Db.Cameras.FindAsync(editingCamera.Id);
+            CameraInfo? cam = await Db.Cameras.FindAsync(editingCamera.Id);
             if (cam != null)
             {
                 cam.Name = editingCamera.Name;
