@@ -15,6 +15,11 @@
 
     <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
         <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "general" ? "active" : "")" @onclick='() => SetTab("general")'>
+                <i class="fa-solid fa-gear me-1"></i> General
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link @(activeTab == "obs" ? "active" : "")" @onclick='() => SetTab("obs")'>
                 <i class="fa-solid fa-broadcast-tower me-1"></i> OBS Settings
             </button>
@@ -37,7 +42,47 @@
     </ul>
 
     <div class="tab-content">
-        @if (activeTab == "obs")
+        @if (activeTab == "general")
+        {
+            <div class="row g-4">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-gear me-2 text-teal"></i> General Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Church Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="churchName" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">YouTube Handle (without @@)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark text-graySmall border-secondary">@@</span>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="youtubeHandle" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Facebook Handle</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark text-graySmall border-secondary">facebook.com/</span>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="facebookHandle" />
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-teal-glow px-4" @onclick="SaveGeneralSettings" disabled="@isSaving">
+                                <i class="fa-solid fa-save me-2"></i>Save General Settings
+                            </button>
+                            @if (saveStatus == "general")
+                            {
+                                <span class="ms-3 text-success small">@saveMessage</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "obs")
         {
             <div class="row g-4">
                 <div class="col-md-8 col-lg-6">
@@ -303,6 +348,11 @@
     private string? saveMessage;
     private string? saveStatus;
 
+    // General Settings
+    private string churchName = "Corona SDA Church";
+    private string youtubeHandle = "CoronaSDAChurch";
+    private string facebookHandle = "CoronaSDAChurch";
+
     // OBS Settings
     private string obsHost = "";
     private int obsPort = 4455;
@@ -341,6 +391,9 @@
 
     private async Task LoadGeneralSettings()
     {
+        churchName = await Settings.GetSettingAsync("General", "ChurchName", "Corona SDA Church");
+        youtubeHandle = await Settings.GetSettingAsync("General", "YouTubeHandle", "CoronaSDAChurch");
+        facebookHandle = await Settings.GetSettingAsync("General", "FacebookHandle", "CoronaSDAChurch");
         obsHost = await Settings.GetSettingAsync("OBS", "Host", "127.0.0.1");
         obsPort = await Settings.GetSettingIntAsync("OBS", "Port", 4455);
 
@@ -356,6 +409,21 @@
         pcoProPos = await Settings.GetSettingAsync("Pco", "ProPresenterPosition", "ProPresenter");
         pcoLivePos = await Settings.GetSettingAsync("Pco", "LivestreamPosition", "Livestream");
         pcoWorshipPos = await Settings.GetSettingAsync("Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
+    }
+
+    private async Task SaveGeneralSettings()
+    {
+        isSaving = true;
+        saveStatus = "general";
+        try
+        {
+            await Settings.SaveSettingAsync("General", "ChurchName", churchName);
+            await Settings.SaveSettingAsync("General", "YouTubeHandle", youtubeHandle);
+            await Settings.SaveSettingAsync("General", "FacebookHandle", facebookHandle);
+            saveMessage = "General settings saved!";
+        }
+        catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
+        finally { isSaving = false; }
     }
 
     private async Task SaveObsSettings()

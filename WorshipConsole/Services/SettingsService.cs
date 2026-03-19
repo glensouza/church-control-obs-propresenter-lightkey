@@ -74,6 +74,9 @@ public class SettingsService
         await this.EnsureSetting(db, "Pco", "LivestreamPosition", "Livestream");
         await this.EnsureSetting(db, "Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
 
+        // General
+        await this.EnsureSetting(db, "General", "ChurchName", "Corona SDA Church");
+
         await db.SaveChangesAsync();
     }
 

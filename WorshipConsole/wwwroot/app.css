@@ -106,6 +106,18 @@ h1:focus {
     color: var(--navy-bg);
 }
 
+.btn-teal {
+    background-color: var(--tech-teal);
+    color: var(--navy-bg);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-teal:hover {
+    background-color: #3bb2e2;
+    color: var(--navy-bg);
+}
+
 .btn-teal-glow {
     background-color: var(--tech-teal);
     color: var(--navy-bg);
