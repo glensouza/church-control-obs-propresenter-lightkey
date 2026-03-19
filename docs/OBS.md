@@ -27,17 +27,22 @@ The OBS page in Worship Console gives you full remote control of OBS Studio from
 
 ---
 
-## 2. Configure appsettings.json
+## 2. Configure Administration
 
-Open `WorshipConsole/appsettings.json` and fill in your OBS machine's details:
+Open the **Administration** page (`/admin`) in Worship Console and fill in your OBS machine's details:
+
+1.  Navigate to the **General Settings** tab.
+2.  Enter the **Host** (IP address) and **WebSocket Port** (default: `4455`).
+3.  Click **Save All General Settings**.
+
+> **Note:** For security, the **OBS Password** must still be set in `WorshipConsole/appsettings.json`.
 
 ```json
-{
-  "OBS": {
-    "Host": "192.168.1.50",
-    "Port": 4455,
-    "Password": "your-obs-password"
-  }
+"OBS": {
+  "Password": "your-obs-websocket-password"
+}
+```
+
 }
 ```
 

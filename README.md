@@ -6,6 +6,7 @@ A unified AV control panel for worship teams, combining OBS, ProPresenter, and L
 
 ## Documentation
 
+- **[Administration](docs/Administration.md)** — Manage hardware settings and media paths.
 - **[OBS Control](docs/OBS.md)** — Scene switching and output management.
 - **[Camera Control](docs/Cameras.md)** — PTZ and PoE power management.
 - **[ProPresenter](docs/ProPresenter.md)** — Slide and media management.
@@ -45,6 +46,7 @@ The OBS control features are inspired by **[obs-web](https://github.com/Niek/obs
 ## Getting Started
 
 1. Clone the repository
-2. Set the OBS host/port/password in `WorshipConsole/appsettings.json`
+2. Open the **Administration** page (`/admin`) in Worship Console and enter the OBS machine's IP address.
+3. Ensure the `OBS:Password` is set in `WorshipConsole/appsettings.json`.
 3. Run the application: `dotnet run --project WorshipConsole`
 4. Open the browser and navigate to `/obs`

@@ -38,7 +38,7 @@
                             <i class="fa-solid fa-list-ol text-teal me-2"></i>Script Navigation
                         </h6>
                     </div>
-                    <div class="card-body p-0" style="overflow-y: auto; max-height: 75vh;">
+                    <div class="card-body p-0 script-nav-body">
                         @foreach (Script script in scripts)
                         {
                             <button class="btn w-100 text-start px-3 py-2 rounded-0 border-0 border-bottom border-secondary script-nav-btn @(currentScript?.Id == script.Id ? "active-scene" : "")"

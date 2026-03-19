@@ -53,8 +53,8 @@
             @foreach (Script script in FilteredScripts)
             {
                 <div class="col-12">
-                    <div class="card navy-light-bg text-white border-secondary script-card @(selectedScript?.Id == script.Id ? "border-teal" : "")"
-                         @onclick="() => SelectScript(script)" style="cursor: pointer;">
+                    <div class="card navy-light-bg text-white border-secondary script-card @(selectedScript?.Id == script.Id ? "border-teal" : "") script-card-clickable"
+                         @onclick="() => SelectScript(script)">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>

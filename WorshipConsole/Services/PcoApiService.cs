@@ -9,6 +9,7 @@ public class PcoApiService
 {
     private readonly HttpClient httpClient;
     private readonly IConfiguration configuration;
+    private readonly SettingsService settings;
     private readonly ILogger<PcoApiService> logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -16,10 +17,11 @@ public class PcoApiService
         PropertyNameCaseInsensitive = true
     };
 
-    public PcoApiService(HttpClient httpClient, IConfiguration configuration, ILogger<PcoApiService> logger)
+    public PcoApiService(HttpClient httpClient, IConfiguration configuration, SettingsService settings, ILogger<PcoApiService> logger)
     {
         this.httpClient = httpClient;
         this.configuration = configuration;
+        this.settings = settings;
         this.logger = logger;
 
         this.ConfigureHttpClient();
@@ -42,8 +44,7 @@ public class PcoApiService
     public bool IsConfigured()
     {
         return !string.IsNullOrWhiteSpace(this.configuration["Pco:AppId"])
-            && !string.IsNullOrWhiteSpace(this.configuration["Pco:AppSecret"])
-            && !string.IsNullOrWhiteSpace(this.configuration["Pco:ServiceTypeId"]);
+            && !string.IsNullOrWhiteSpace(this.configuration["Pco:AppSecret"]);
     }
 
     public async Task<ContactInfo?> GetNextSaturdayContactsAsync()
@@ -64,9 +65,9 @@ public class PcoApiService
 
         List<PcoPlanPerson> teamMembers = await this.GetPlanTeamMembersAsync(serviceTypeId, plan.Id);
 
-        string propresenterPosition = this.configuration["Pco:ProPresenterPosition"] ?? "ProPresenter";
-        string livestreamPosition = this.configuration["Pco:LivestreamPosition"] ?? "Livestream";
-        string worshipCoordinatorPosition = this.configuration["Pco:WorshipCoordinatorPosition"] ?? "Worship Coordinator";
+        string propresenterPosition = await this.settings.GetSettingAsync("Pco", "ProPresenterPosition", "ProPresenter");
+        string livestreamPosition = await this.settings.GetSettingAsync("Pco", "LivestreamPosition", "Livestream");
+        string worshipCoordinatorPosition = await this.settings.GetSettingAsync("Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
 
         return new ContactInfo
         {

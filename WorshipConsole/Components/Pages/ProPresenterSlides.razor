@@ -33,7 +33,7 @@
     {
         <div class="alert alert-warning border-warning navy-light-bg text-white">
             <h5 class="fw-bold"><i class="fa-solid fa-circle-exclamation me-2"></i> Not Configured</h5>
-            ProPresenter is not configured in <code>appsettings.json</code>.
+            ProPresenter is not configured. Please visit the <a href="/admin" class="text-teal">Administration</a> page to set the host and port.
         </div>
     }
     else if (!isConnected)
@@ -61,7 +61,7 @@
                         <span class="fw-bold text-teal small text-uppercase tracking-wider">Current Slide</span>
                         <span class="badge bg-teal text-dark">LIVE</span>
                     </div>
-                    <div class="card-body p-0 position-relative bg-black d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <div class="card-body p-0 position-relative bg-black d-flex align-items-center justify-content-center current-slide-container">
                         @if (!string.IsNullOrEmpty(currentThumbnail))
                         {
                             <img src="@currentThumbnail" class="img-fluid w-100 h-100 object-fit-contain @(isUpdatingThumbnails ? "opacity-50" : "")" alt="Current Slide" />

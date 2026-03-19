@@ -13,6 +13,11 @@
 - Prefer explicit typed `out` variables (e.g., `int.TryParse(..., out int p)` instead of `out var p`).
 - Keep private state as simple primitive fields when appropriate (e.g., `private int obsPort = 4455;`).
 
+### Styling
+- **CSS Isolation**: All component-specific styles must reside in a corresponding `.razor.css` file.
+- **No Inline Styles**: Avoid using the `style="..."` attribute in `.razor` files. (Exception: Truly dynamic values calculated at runtime, like progress bar widths).
+- **No Style Blocks**: Do not use `<style>` tags within `.razor` files.
+
 ### Cross-Platform Considerations
 - Develop on Windows locally but ensure configurations are cross-platform-safe for deployment to Linux containers.
 

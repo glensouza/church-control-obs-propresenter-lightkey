@@ -9,52 +9,34 @@ namespace WorshipConsole.Services;
 public class MediaService
 {
     private readonly IConfiguration configuration;
+    private readonly SettingsService settings;
     private readonly ILogger<MediaService> logger;
-    private readonly string mediaRootPath;
-    private readonly string welcomeVideoFolder;
-    private readonly string welcomeVideoFileName;
-    private readonly string backgroundVideosFolder;
-    private readonly string youtubeDownloadsFolder;
     private readonly YoutubeClient youtubeClient;
 
-    public MediaService(IConfiguration configuration, ILogger<MediaService> logger)
+    public MediaService(IConfiguration configuration, SettingsService settings, ILogger<MediaService> logger)
     {
         this.configuration = configuration;
+        this.settings = settings;
         this.logger = logger;
-
-        this.mediaRootPath = this.configuration["ProPresenter:MediaRootPath"] ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "media");
-        this.welcomeVideoFolder = this.configuration["ProPresenter:WelcomeVideoFolder"] ?? "Welcome";
-        this.welcomeVideoFileName = this.configuration["ProPresenter:WelcomeVideoFileName"] ?? "Welcome.mp4";
-        this.backgroundVideosFolder = this.configuration["ProPresenter:BackgroundVideosFolder"] ?? "Backgrounds";
-        this.youtubeDownloadsFolder = this.configuration["ProPresenter:YouTubeDownloadsFolder"] ?? "YouTube";
-
         this.youtubeClient = new YoutubeClient();
-        this.ConfigureFfmpegBinaryFolder();
-
-        // Ensure directories exist
-        this.EnsureDirectoryExists(this.GetWelcomeFolderPath());
-        this.EnsureDirectoryExists(this.GetBackgroundVideosFolderPath());
-        this.EnsureDirectoryExists(this.GetYouTubeFolderPath());
+        
+        // Initial FFmpeg configuration
+        this.ConfigureFfmpegBinaryFolderAsync().GetAwaiter().GetResult();
     }
 
-    private void ConfigureFfmpegBinaryFolder()
+    private async Task ConfigureFfmpegBinaryFolderAsync()
     {
-        string? configuredPath = this.configuration["ProPresenter:FfmpegPath"];
+        string configuredPath = await this.settings.GetSettingAsync("ProPresenter", "FfmpegPath", "");
         if (string.IsNullOrWhiteSpace(configuredPath))
         {
-            return;
+            configuredPath = this.configuration["ProPresenter:FfmpegPath"] ?? "";
         }
+
+        if (string.IsNullOrWhiteSpace(configuredPath)) return;
 
         string? binaryFolder = null;
-
-        if (Directory.Exists(configuredPath))
-        {
-            binaryFolder = configuredPath;
-        }
-        else if (File.Exists(configuredPath))
-        {
-            binaryFolder = Path.GetDirectoryName(configuredPath);
-        }
+        if (Directory.Exists(configuredPath)) binaryFolder = configuredPath;
+        else if (File.Exists(configuredPath)) binaryFolder = Path.GetDirectoryName(configuredPath);
 
         if (string.IsNullOrWhiteSpace(binaryFolder))
         {
@@ -75,15 +57,46 @@ public class MediaService
         }
     }
 
-    public string GetWelcomeFolderPath() => Path.Combine(this.mediaRootPath, this.welcomeVideoFolder);
-    public string GetBackgroundVideosFolderPath() => Path.Combine(this.mediaRootPath, this.backgroundVideosFolder);
-    public string GetYouTubeFolderPath() => Path.Combine(this.mediaRootPath, this.youtubeDownloadsFolder);
+    public async Task<string> GetMediaRootPathAsync() 
+        => await this.settings.GetSettingAsync("ProPresenter", "MediaRootPath", Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "media"));
 
-    public string GetWelcomeVideoFilePath() => Path.Combine(this.GetWelcomeFolderPath(), this.welcomeVideoFileName);
+    public async Task<string> GetWelcomeFolderPathAsync() 
+    {
+        string root = await this.GetMediaRootPathAsync();
+        string folder = await this.settings.GetSettingAsync("ProPresenter", "WelcomeVideoFolder", "Welcome");
+        string path = Path.Combine(root, folder);
+        this.EnsureDirectoryExists(path);
+        return path;
+    }
+
+    public async Task<string> GetBackgroundVideosFolderPathAsync()
+    {
+        string root = await this.GetMediaRootPathAsync();
+        string folder = await this.settings.GetSettingAsync("ProPresenter", "BackgroundVideosFolder", "Backgrounds");
+        string path = Path.Combine(root, folder);
+        this.EnsureDirectoryExists(path);
+        return path;
+    }
+
+    public async Task<string> GetYouTubeFolderPathAsync()
+    {
+        string root = await this.GetMediaRootPathAsync();
+        string folder = await this.settings.GetSettingAsync("ProPresenter", "YouTubeDownloadsFolder", "YouTube");
+        string path = Path.Combine(root, folder);
+        this.EnsureDirectoryExists(path);
+        return path;
+    }
+
+    public async Task<string> GetWelcomeVideoFilePathAsync()
+    {
+        string folder = await this.GetWelcomeFolderPathAsync();
+        string fileName = await this.settings.GetSettingAsync("ProPresenter", "WelcomeVideoFileName", "Welcome.mp4");
+        return Path.Combine(folder, fileName);
+    }
 
     public async Task<bool> SaveWelcomeVideoAsync(Stream stream, string fileName)
     {
-        string filePath = this.GetWelcomeVideoFilePath();
+        string filePath = await this.GetWelcomeVideoFilePathAsync();
         string tempExtension = Path.GetExtension(fileName);
         if (string.IsNullOrWhiteSpace(tempExtension))
         {
@@ -176,7 +189,8 @@ public class MediaService
     {
         try
         {
-            string filePath = Path.Combine(this.GetBackgroundVideosFolderPath(), fileName);
+            string folder = await this.GetBackgroundVideosFolderPathAsync();
+            string filePath = Path.Combine(folder, fileName);
             await using (FileStream fs = new(filePath, FileMode.Create))
             {
                 await stream.CopyToAsync(fs);
@@ -210,9 +224,9 @@ public class MediaService
         }
     }
 
-    public List<string> ListBackgroundVideos()
+    public async Task<List<string>> ListBackgroundVideosAsync()
     {
-        string path = this.GetBackgroundVideosFolderPath();
+        string path = await this.GetBackgroundVideosFolderPathAsync();
         if (!Directory.Exists(path)) return [];
 
         return Directory.GetFiles(path)
@@ -222,11 +236,11 @@ public class MediaService
             .ToList()!;
     }
 
-    public bool DeleteBackgroundVideo(string fileName)
+    public async Task<bool> DeleteBackgroundVideoAsync(string fileName)
     {
         try
         {
-            string folder = this.GetBackgroundVideosFolderPath();
+            string folder = await this.GetBackgroundVideosFolderPathAsync();
             string filePath = Path.Combine(folder, fileName);
             if (File.Exists(filePath))
             {
@@ -248,7 +262,7 @@ public class MediaService
         }
     }
 
-    public bool WelcomeVideoExists() => File.Exists(this.GetWelcomeVideoFilePath());
+    public async Task<bool> WelcomeVideoExistsAsync() => File.Exists(await this.GetWelcomeVideoFilePathAsync());
 
     #region YouTube Downloads
 
@@ -276,7 +290,8 @@ public class MediaService
 
             string extension = audioOnly ? "mp3" : streamInfo.Container.Name;
             string fileName = $"{sanitizedTitle}.{extension}";
-            string filePath = Path.Combine(this.GetYouTubeFolderPath(), fileName);
+            string folder = await this.GetYouTubeFolderPathAsync();
+            string filePath = Path.Combine(folder, fileName);
 
             if (audioOnly)
             {
@@ -322,7 +337,7 @@ public class MediaService
             try
             {
                 string thumbUrl = video.Thumbnails.GetWithHighestResolution().Url;
-                string thumbPath = Path.Combine(this.GetYouTubeFolderPath(), $"{sanitizedTitle}.jpg");
+                string thumbPath = Path.Combine(folder, $"{sanitizedTitle}.jpg");
                 using HttpClient client = new();
                 byte[] thumbData = await client.GetByteArrayAsync(thumbUrl);
                 await File.WriteAllBytesAsync(thumbPath, thumbData);
@@ -362,9 +377,9 @@ public class MediaService
         }
     }
 
-    public List<string> ListYouTubeDownloads()
+    public async Task<List<string>> ListYouTubeDownloadsAsync()
     {
-        string path = this.GetYouTubeFolderPath();
+        string path = await this.GetYouTubeFolderPathAsync();
         if (!Directory.Exists(path)) return [];
 
         return Directory.GetFiles(path)
@@ -374,11 +389,11 @@ public class MediaService
             .ToList()!;
     }
 
-    public bool DeleteYouTubeDownload(string fileName)
+    public async Task<bool> DeleteYouTubeDownloadAsync(string fileName)
     {
         try
         {
-            string folder = this.GetYouTubeFolderPath();
+            string folder = await this.GetYouTubeFolderPathAsync();
             string filePath = Path.Combine(folder, fileName);
             if (!File.Exists(filePath))
             {
@@ -401,15 +416,17 @@ public class MediaService
         }
     }
 
-    public bool BackgroundThumbnailExists(string fileName)
+    public async Task<bool> BackgroundThumbnailExistsAsync(string fileName)
     {
         string thumbName = Path.GetFileNameWithoutExtension(fileName) + ".jpg";
-        return File.Exists(Path.Combine(this.GetBackgroundVideosFolderPath(), thumbName));
+        string folder = await this.GetBackgroundVideosFolderPathAsync();
+        return File.Exists(Path.Combine(folder, thumbName));
     }
 
-    public bool YouTubeDownloadExists(string fileName)
+    public async Task<bool> YouTubeDownloadExistsAsync(string fileName)
     {
-        return File.Exists(Path.Combine(this.GetYouTubeFolderPath(), fileName));
+        string folder = await this.GetYouTubeFolderPathAsync();
+        return File.Exists(Path.Combine(folder, fileName));
     }
 
     #endregion

@@ -1,0 +1,4 @@
+.script-nav-body {
+    overflow-y: auto;
+    max-height: 75vh;
+}

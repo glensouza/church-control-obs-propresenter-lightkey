@@ -1,7 +1,8 @@
 ﻿<nav class="navbar navbar-expand-lg navbar-dark border-bottom border-secondary py-3">
     <div class="container">
         <a class="navbar-brand fw-bold tracking-wide" href="#">
-            <img src="favicon-32x32.png" alt="logo" />@* <i class="fa-solid fa-sliders text-teal me-2"></i> *@ WORSHIP <span class="fw-light">CONSOLE</span>
+            <img src="favicon-32x32.png" class="navbar-logo me-2" alt="logo" />
+@* <i class="fa-solid fa-sliders text-teal me-2"></i> *@ WORSHIP <span class="fw-light">CONSOLE</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -12,10 +13,9 @@
                     <a class="nav-link text-white" href="/livestream">Livestream</a>
                     <button class="dropdown-toggle dropdown-toggle-split text-white" type="button" id="navbarDropdownLivestream" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Toggle Livestream menu"></button>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdownLivestream">
-                        <li><a class="dropdown-item" href="/obs"><img src="obs.png" style="width: 16px; height: 16px;" class="me-2" alt="OBS" /> OBS</a></li>
+                        <li><a class="dropdown-item" href="/obs"><img src="obs.png" class="obs-icon-small me-2" alt="OBS" /> OBS</a></li>
                         <li><a class="dropdown-item" href="/cameras"><i class="fa-solid fa-video text-teal me-2"></i> Cameras</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/admin/cameras"><i class="fa-solid fa-gear text-gray me-2"></i> Camera Admin</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
@@ -37,8 +37,9 @@
                         <li><a class="dropdown-item" href="/pageant/lights">Run Lights</a></li>
                     </ul>
                 </li>
+                <li><a class="btn btn-outline-teal rounded-pill px-4" href="/admin"><i class="fa-solid fa-sliders text-gray me-2"></i>Administration</a></li>
+                @* <button class="btn btn-outline-teal rounded-pill px-4" onclick="triggerAlert()"></button> *@
             </ul>
-            @* <button class="btn btn-outline-teal rounded-pill px-4" onclick="triggerAlert()">Get Started</button> *@
         </div>
     </div>
 </nav>

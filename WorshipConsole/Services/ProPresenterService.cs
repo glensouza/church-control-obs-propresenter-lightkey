@@ -7,32 +7,45 @@ public class ProPresenterService
 {
     private readonly HttpClient httpClient;
     private readonly IConfiguration configuration;
+    private readonly SettingsService settings;
     private readonly ILogger<ProPresenterService> logger;
-    private readonly ProPresenterConfiguration config;
+    private ProPresenterConfiguration? config;
 
-    public ProPresenterService(HttpClient httpClient, IConfiguration configuration, ILogger<ProPresenterService> logger)
+    public ProPresenterService(HttpClient httpClient, IConfiguration configuration, SettingsService settings, ILogger<ProPresenterService> logger)
     {
         this.httpClient = httpClient;
         this.configuration = configuration;
+        this.settings = settings;
         this.logger = logger;
 
-        this.config = new ProPresenterConfiguration
-        {
-            Host = this.configuration["ProPresenter:Host"] ?? "127.0.0.1",
-            Port = int.TryParse(this.configuration["ProPresenter:Port"], out int port) ? port : 20000,
-            Password = this.configuration["ProPresenter:Password"]
-        };
-
-        this.httpClient.BaseAddress = new Uri($"http://{this.config.Host}:{this.config.Port}/");
         this.httpClient.Timeout = TimeSpan.FromSeconds(2);
     }
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(this.config.Host);
+    private async Task EnsureConfiguredAsync()
+    {
+        string host = await this.settings.GetSettingAsync("ProPresenter", "Host", "127.0.0.1");
+        int port = await this.settings.GetSettingIntAsync("ProPresenter", "Port", 20000);
+        string? password = this.configuration["ProPresenter:Password"];
+
+        if (this.config == null || this.config.Host != host || this.config.Port != port)
+        {
+            this.config = new ProPresenterConfiguration
+            {
+                Host = host,
+                Port = port,
+                Password = password
+            };
+            this.httpClient.BaseAddress = new Uri($"http://{this.config.Host}:{this.config.Port}/");
+        }
+    }
+
+    public bool IsConfigured => true; // We'll check at runtime
 
     public async Task<(bool Success, string Message)> GetStatusAsync()
     {
         try
         {
+            await this.EnsureConfiguredAsync();
             string url = this.AppendPassword("version");
             HttpResponseMessage response = await this.httpClient.GetAsync(url);
             return response.IsSuccessStatusCode ? (true, "Connected") : (false, $"Status code: {response.StatusCode}");
@@ -45,6 +58,7 @@ public class ProPresenterService
 
     public async Task<(string? Uuid, string? Name, int? Index)> GetActivePresentationDetailsAsync()
     {
+        await this.EnsureConfiguredAsync();
         string query = this.GetQueryString();
         string? uuid = null;
         string? name = null;
@@ -85,6 +99,7 @@ public class ProPresenterService
     {
         try
         {
+            await this.EnsureConfiguredAsync();
             // Use current ticks as a cache-buster
             string separator = path.Contains('?') ? "&" : "?";
             string url = this.AppendPassword($"{path}{separator}t={DateTime.UtcNow.Ticks}");
@@ -98,18 +113,32 @@ public class ProPresenterService
         catch { return null; }
     }
 
-    public async Task<bool> NextSlideAsync() => await this.SendTriggerAsync("v1/presentation/active/next/trigger");
-    public async Task<bool> PreviousSlideAsync() => await this.SendTriggerAsync("v1/presentation/active/previous/trigger");
+    public async Task<bool> NextSlideAsync()
+    {
+        await this.EnsureConfiguredAsync();
+        return await this.SendTriggerAsync("v1/presentation/active/next/trigger");
+    }
+
+    public async Task<bool> PreviousSlideAsync()
+    {
+        await this.EnsureConfiguredAsync();
+        return await this.SendTriggerAsync("v1/presentation/active/previous/trigger");
+    }
 
     public async Task<bool> ClearAllAsync()
     {
+        await this.EnsureConfiguredAsync();
         // Multi-layer clear for thoroughness
         await this.SendTriggerAsync("v1/clear/layer/media");
         await this.SendTriggerAsync("v1/clear/layer/video_input");
         return await this.SendTriggerAsync("v1/clear/layer/slide");
     }
 
-    public async Task<bool> ClearSlideAsync() => await this.SendTriggerAsync("v1/clear/layer/slide");
+    public async Task<bool> ClearSlideAsync()
+    {
+        await this.EnsureConfiguredAsync();
+        return await this.SendTriggerAsync("v1/clear/layer/slide");
+    }
 
     private async Task<bool> SendTriggerAsync(string url)
     {

@@ -17,7 +17,7 @@
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="bg-dark rounded-circle p-3 me-3">
-                            <img src="obs.png" style="width: 48px; height: 48px;" alt="OBS Logo" />
+                            <img src="obs.png" class="obs-logo-medium" alt="OBS Logo" />
                         </div>
                         <h3 class="fw-bold mb-0">OBS Studio</h3>
                     </div>
@@ -72,7 +72,7 @@
                         <a href="/cameras" class="btn btn-outline-teal fw-bold py-3 flex-grow-1">
                             <i class="fa-solid fa-sliders me-2"></i>Open Camera Control
                         </a>
-                        <a href="/admin/cameras" class="btn btn-outline-secondary py-3 px-3" title="Camera Admin">
+                        <a href="/admin" class="btn btn-outline-secondary py-3 px-3" title="Administration">
                             <i class="fa-solid fa-gear"></i>
                         </a>
                     </div>
@@ -84,7 +84,7 @@
     <div class="mt-5 text-center">
         <div class="alert alert-secondary navy-light-bg border-secondary d-inline-block px-4 py-3">
             <i class="fa-solid fa-circle-info text-teal me-2"></i>
-            <span class="text-gray">Settings for IP addresses and ports can be found in <code>appsettings.json</code>.</span>
+            <span class="text-gray">Settings for IP addresses and ports can be found in the <a href="/admin" class="text-teal">Administration</a> page. Secrets remain in <code>appsettings.json</code>.</span>
         </div>
     </div>
 </div>

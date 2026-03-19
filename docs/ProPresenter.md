@@ -28,27 +28,22 @@ The ProPresenter integration in Worship Console allows you to remotely control s
 
 ---
 
-## 2. Configure appsettings.json
+## 2. Configure Administration
 
-Open `WorshipConsole/appsettings.json` and fill in your ProPresenter machine's details:
+Open the **Administration** page (`/admin`) in Worship Console and fill in your ProPresenter machine's details:
+
+1.  Navigate to the **General Settings** tab.
+2.  Enter the **Host** (IP address) and **Port** (default: `20000`).
+3.  Configure **Media Root Path**, **FFmpeg Path**, and **Folder Names** as needed.
+4.  Click **Save All General Settings**.
+
+> **Note:** For security, the **ProPresenter Password** (if required) must still be set in `WorshipConsole/appsettings.json`.
 
 ```json
-{
-  "ProPresenter": {
-    "Host": "192.168.1.55",
-    "Port": 20000,
-    "Password": "your-password"
-  }
+"ProPresenter": {
+  "Password": "your-propresenter-api-password"
 }
 ```
-
-> **IMPORTANT:** If you are running the console on a different machine than ProPresenter, do **not** use `127.0.0.1`. Use the actual local IP address of the ProPresenter PC (e.g., `192.168.1.55`).
-
-| Field | Description | Default |
-|---|---|---|
-| `Host` | Static IP address of the ProPresenter machine | `127.0.0.1` |
-| `Port` | ProPresenter Network API port | `20000` |
-| `Password` | API password (leave empty if none) | *(empty)* |
 
 ---
 
@@ -94,21 +89,11 @@ Paste any YouTube URL to download the video or just the audio (MP3) directly to 
 
 ## 6. Configuration (Advanced)
 
-The media features require `FFmpeg` to be installed on the server for thumbnail generation.
+Advanced settings for media storage and processing can be managed in the **Administration** page (`/admin`) under **General Settings**. 
 
-```json
-{
-  "ProPresenter": {
-    "Host": "10.10.10.245",
-    "Port": 20000,
-    "MediaRootPath": "C:\\Media",
-    "FfmpegPath": "C:\\FFmpeg\\bin",
-    "WelcomeVideoFolder": "Welcome",
-    "BackgroundVideosFolder": "Backgrounds",
-    "YouTubeDownloadsFolder": "YouTube"
-  }
-}
-```
+*   **Media Root Path**: The base directory where all videos are stored on the server.
+*   **FFmpeg Path**: Path to the FFmpeg binary folder (required for video conversions and thumbnails).
+*   **Folder Names**: Customize the subfolders for Welcome, Backgrounds, and YouTube downloads.
 
 ---
 

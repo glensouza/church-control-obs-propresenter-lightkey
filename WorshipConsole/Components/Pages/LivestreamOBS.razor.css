@@ -29,3 +29,16 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+.obs-header-logo {
+    height: 40px;
+}
+
+.obs-placeholder-img {
+    height: 120px;
+    opacity: 0.4;
+}
+
+.obs-live-preview-container {
+    max-width: 640px;
+}

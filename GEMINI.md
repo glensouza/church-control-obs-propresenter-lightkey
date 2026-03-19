@@ -45,7 +45,9 @@ Configuration is managed in `WorshipConsole/appsettings.json`. Key sections incl
 - **Components:**
     - Located in `WorshipConsole/Components/Pages`.
     - Use `InteractiveServer` render mode.
-    - CSS isolation is preferred (e.g., `PageName.razor.css`).
+    - **Styling:** CSS isolation is **mandatory**. All component-specific styles must reside in a corresponding `.razor.css` file.
+    - **No Inline Styles:** Never use the `style="..."` attribute in `.razor` files unless the value is truly dynamic and calculated at runtime.
+    - **No Style Blocks:** Never use `<style>` tags within `.razor` files.
 - **Services:**
     - `ObsWebSocketService`: Scoped (one instance per Blazor circuit) to maintain connection state.
     - `UniFiService` / `ViscaService`: Singletons for shared hardware access.

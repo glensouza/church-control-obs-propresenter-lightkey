@@ -1,0 +1,26 @@
+.nav-tabs {
+    border-bottom-color: var(--navy-light);
+}
+
+.nav-tabs .nav-link {
+    color: var(--text-gray);
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: transparent;
+    color: #fff;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: transparent;
+    color: var(--tech-teal);
+    border-bottom-color: var(--tech-teal);
+}
+
+.text-graySmall {
+    color: var(--text-gray);
+    font-size: 0.85rem;
+}

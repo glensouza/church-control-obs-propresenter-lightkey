@@ -11,7 +11,7 @@
     @* ── Header ── *@
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
-            <img src="obs.png" style="height:40px;" alt="OBS" />
+            <img src="obs.png" class="obs-header-logo" alt="OBS" />
             <h2 class="fw-bold mb-0">OBS Control</h2>
         </div>
 
@@ -56,7 +56,7 @@
     @if (!ObsService.IsConnected)
     {
         <div class="text-center py-5">
-            <img src="obs.png" style="height:120px;opacity:.4;" alt="OBS" class="mb-4" />
+            <img src="obs.png" class="obs-placeholder-img mb-4" alt="OBS" />
             <h4 class="text-gray">
                 @(ObsService.IsConnecting ? "Connecting to OBS…" : "Not connected to OBS")
             </h4>
@@ -194,7 +194,7 @@
 
                 @if (!string.IsNullOrEmpty(ObsService.ProgramScreenshot))
                 {
-                    <div class="preview-container mb-4 border border-secondary rounded overflow-hidden shadow-sm" style="max-width: 640px;">
+                    <div class="preview-container mb-4 border border-secondary rounded overflow-hidden shadow-sm obs-live-preview-container">
                         <img src="@ObsService.ProgramScreenshot" class="w-100 d-block" alt="Program" />
                         <div class="preview-label bg-dark text-white small px-2 py-1">Live: @ObsService.CurrentProgramScene</div>
                     </div>

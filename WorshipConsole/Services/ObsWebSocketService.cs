@@ -17,9 +17,10 @@ namespace WorshipConsole.Services;
 public sealed class ObsWebSocketService : IAsyncDisposable
 {
     // ── Configuration ──
-    private readonly string host;
-    private readonly int port;
+    private string host = "127.0.0.1";
+    private int port = 4455;
     private readonly string password;
+    private readonly SettingsService settings;
 
     // ── WebSocket internals ──
     private ClientWebSocket? ws;
@@ -53,10 +54,9 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     /// <summary>Raised on any state change so Blazor components can call StateHasChanged.</summary>
     public event Action? StateChanged;
 
-    public ObsWebSocketService(IConfiguration configuration, ILogger<ObsWebSocketService> logger)
+    public ObsWebSocketService(IConfiguration configuration, SettingsService settings, ILogger<ObsWebSocketService> logger)
     {
-        this.host = configuration["OBS:Host"] ?? "127.0.0.1";
-        this.port = int.TryParse(configuration["OBS:Port"], out int p) ? p : 4455;
+        this.settings = settings;
         this.password = configuration["OBS:Password"] ?? string.Empty;
         this.logger = logger;
     }
@@ -66,6 +66,10 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     public async Task ConnectAsync(CancellationToken ct = default)
     {
         await this.CleanupAsync();
+
+        // Refresh settings from DB
+        this.host = await this.settings.GetSettingAsync("OBS", "Host", "127.0.0.1");
+        this.port = await this.settings.GetSettingIntAsync("OBS", "Port", 4455);
 
         this.IsConnecting = true;
         this.IsConnected = false;

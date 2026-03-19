@@ -1,0 +1,437 @@
+@page "/admin"
+@rendermode InteractiveServer
+@inject PageantDb Db
+@inject SettingsService Settings
+@inject NavigationManager Navigation
+
+<PageTitle>Administration | Worship Console</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="fw-bold text-white mb-0">
+            <i class="fa-solid fa-sliders me-2 text-teal"></i> Administration
+        </h2>
+    </div>
+
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "general" ? "active" : "")" @onclick='() => SetTab("general")'>
+                <i class="fa-solid fa-sliders me-1"></i> General Settings
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "cameras" ? "active" : "")" @onclick='() => SetTab("cameras")'>
+                <i class="fa-solid fa-camera me-1"></i> Camera Admin
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        @if (activeTab == "general")
+        {
+            <div class="row g-4">
+                <!-- OBS Settings -->
+                <div class="col-md-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-broadcast-tower me-2 text-teal"></i> OBS Studio</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Host</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="obsHost" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">WebSocket Port</label>
+                                <input type="number" class="form-control bg-dark text-white border-secondary" @bind="obsPort" />
+                            </div>
+                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info">
+                                <i class="fa-solid fa-circle-info me-1"></i> OBS Password must be set in <code>appsettings.json</code>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ProPresenter Settings -->
+                <div class="col-md-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-desktop me-2 text-teal"></i> ProPresenter</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-sm-8 mb-3">
+                                    <label class="form-label text-graySmall">Host</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proHost" />
+                                </div>
+                                <div class="col-sm-4 mb-3">
+                                    <label class="form-label text-graySmall">Port</label>
+                                    <input type="number" class="form-control bg-dark text-white border-secondary" @bind="proPort" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Media Root Path</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proMediaPath" />
+                                <div class="form-text text-graySmall">Where videos are stored on this server.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">FFmpeg Path</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proFfmpegPath" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-sm-6 mb-3">
+                                    <label class="form-label text-graySmall">Welcome Video Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFolder" />
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <label class="form-label text-graySmall">Welcome Video File</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFile" />
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-sm-6 mb-3">
+                                    <label class="form-label text-graySmall">Backgrounds Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proBackgroundsFolder" />
+                                </div>
+                                <div class="col-sm-6 mb-3">
+                                    <label class="form-label text-graySmall">YouTube Downloads Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proYouTubeFolder" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PCO Settings -->
+                <div class="col-md-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-users me-2 text-teal"></i> Planning Center Online</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">ProPresenter Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoProPos" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Livestream Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoLivePos" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Worship Coordinator Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoWorshipPos" />
+                            </div>
+                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info">
+                                <i class="fa-solid fa-circle-info me-1"></i> API Credentials must be set in <code>appsettings.json</code>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-3 mb-5">
+                    <button class="btn btn-teal-glow px-4" @onclick="SaveGeneralSettings" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <i class="fa-solid fa-save me-2"></i><span>Save All General Settings</span>
+                        }
+                    </button>
+                    @if (!string.IsNullOrEmpty(saveMessage))
+                    {
+                        <span class="ms-3 text-success">@saveMessage</span>
+                    }
+                </div>
+            </div>
+        }
+        else if (activeTab == "cameras")
+        {
+            <div class="card bg-dark border-secondary">
+                <div class="card-header border-secondary navy-light-bg d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-white"><i class="fa-solid fa-video me-2 text-teal"></i> Camera Management</h5>
+                    <button class="btn btn-teal-glow btn-sm" @onclick="AddNewCamera">
+                        <i class="fa-solid fa-plus me-1"></i> Add Camera
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (cameras == null)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-teal" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (cameras.Count == 0)
+                    {
+                        <div class="alert alert-secondary navy-light-bg text-white border-secondary">
+                            No cameras found. Click "Add Camera" to create one.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover border-secondary align-middle">
+                                <thead>
+                                    <tr class="text-teal">
+                                        <th>Name</th>
+                                        <th>IP Address</th>
+                                        <th>VISCA Port</th>
+                                        <th>UniFi Port</th>
+                                        <th>Presets</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (CameraInfo cam in cameras)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <input class="form-control form-control-sm bg-dark text-white border-secondary" @bind="editingCamera.Name" />
+                                                }
+                                                else
+                                                {
+                                                    @cam.Name
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <input class="form-control form-control-sm bg-dark text-white border-secondary" @bind="editingCamera.IpAddress" />
+                                                }
+                                                else
+                                                {
+                                                    @cam.IpAddress
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="editingCamera.ViscaPort" />
+                                                }
+                                                else
+                                                {
+                                                    @cam.ViscaPort
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="editingCamera.UniFiPortNumber" />
+                                                }
+                                                else
+                                                {
+                                                    @(cam.UniFiPortNumber?.ToString() ?? "N/A")
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="editingCamera.NumberOfPresets" />
+                                                }
+                                                else
+                                                {
+                                                    @cam.NumberOfPresets
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (editingCamera?.Id == cam.Id)
+                                                {
+                                                    <button class="btn btn-sm btn-success me-1" @onclick="SaveEdit">
+                                                        <i class="fa-solid fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-secondary" @onclick="CancelEdit">
+                                                        <i class="fa-solid fa-xmark"></i>
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn btn-sm btn-outline-teal me-1" @onclick="() => StartEdit(cam)">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteCamera(cam)">
+                                                        <i class="fa-solid fa-trash"></i>
+                                                    </button>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+
+    private string activeTab = "general";
+    private bool isSaving = false;
+    private string? saveMessage;
+
+    // OBS Settings
+    private string obsHost = "";
+    private int obsPort = 4455;
+
+    // ProPresenter Settings
+    private string proHost = "";
+    private int proPort = 20000;
+    private string proMediaPath = "";
+    private string proFfmpegPath = "";
+    private string proWelcomeFolder = "";
+    private string proWelcomeFile = "";
+    private string proBackgroundsFolder = "";
+    private string proYouTubeFolder = "";
+
+    // PCO Settings
+    private string pcoProPos = "";
+    private string pcoLivePos = "";
+    private string pcoWorshipPos = "";
+
+    // Camera Admin
+    private List<CameraInfo>? cameras;
+    private CameraInfo? editingCamera;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGeneralSettings();
+        await LoadCameras();
+    }
+
+    private void SetTab(string tab) => activeTab = tab;
+
+    private async Task LoadGeneralSettings()
+    {
+        obsHost = await Settings.GetSettingAsync("OBS", "Host", "127.0.0.1");
+        obsPort = await Settings.GetSettingIntAsync("OBS", "Port", 4455);
+
+        proHost = await Settings.GetSettingAsync("ProPresenter", "Host", "127.0.0.1");
+        proPort = await Settings.GetSettingIntAsync("ProPresenter", "Port", 20000);
+        proMediaPath = await Settings.GetSettingAsync("ProPresenter", "MediaRootPath", "C:\\Media");
+        proFfmpegPath = await Settings.GetSettingAsync("ProPresenter", "FfmpegPath", "");
+        proWelcomeFolder = await Settings.GetSettingAsync("ProPresenter", "WelcomeVideoFolder", "Welcome");
+        proWelcomeFile = await Settings.GetSettingAsync("ProPresenter", "WelcomeVideoFileName", "Welcome.mp4");
+        proBackgroundsFolder = await Settings.GetSettingAsync("ProPresenter", "BackgroundVideosFolder", "Backgrounds");
+        proYouTubeFolder = await Settings.GetSettingAsync("ProPresenter", "YouTubeDownloadsFolder", "YouTube");
+
+        pcoProPos = await Settings.GetSettingAsync("Pco", "ProPresenterPosition", "ProPresenter");
+        pcoLivePos = await Settings.GetSettingAsync("Pco", "LivestreamPosition", "Livestream");
+        pcoWorshipPos = await Settings.GetSettingAsync("Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
+    }
+
+    private async Task SaveGeneralSettings()
+    {
+        isSaving = true;
+        saveMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await Settings.SaveSettingAsync("OBS", "Host", obsHost);
+            await Settings.SaveSettingAsync("OBS", "Port", obsPort.ToString());
+
+            await Settings.SaveSettingAsync("ProPresenter", "Host", proHost);
+            await Settings.SaveSettingAsync("ProPresenter", "Port", proPort.ToString());
+            await Settings.SaveSettingAsync("ProPresenter", "MediaRootPath", proMediaPath);
+            await Settings.SaveSettingAsync("ProPresenter", "FfmpegPath", proFfmpegPath);
+            await Settings.SaveSettingAsync("ProPresenter", "WelcomeVideoFolder", proWelcomeFolder);
+            await Settings.SaveSettingAsync("ProPresenter", "WelcomeVideoFileName", proWelcomeFile);
+            await Settings.SaveSettingAsync("ProPresenter", "BackgroundVideosFolder", proBackgroundsFolder);
+            await Settings.SaveSettingAsync("ProPresenter", "YouTubeDownloadsFolder", proYouTubeFolder);
+
+            await Settings.SaveSettingAsync("Pco", "ProPresenterPosition", pcoProPos);
+            await Settings.SaveSettingAsync("Pco", "LivestreamPosition", pcoLivePos);
+            await Settings.SaveSettingAsync("Pco", "WorshipCoordinatorPosition", pcoWorshipPos);
+
+            saveMessage = "Settings saved successfully!";
+        }
+        catch (Exception ex)
+        {
+            saveMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    // --- Camera Admin Logic ---
+    private async Task LoadCameras()
+    {
+        cameras = await Db.Cameras.ToListAsync();
+    }
+
+    private void AddNewCamera()
+    {
+        editingCamera = new CameraInfo { Name = "New Camera", ViscaPort = 5678, NumberOfPresets = 9 };
+        cameras?.Add(editingCamera);
+    }
+
+    private void StartEdit(CameraInfo cam)
+    {
+        editingCamera = new CameraInfo
+        {
+            Id = cam.Id,
+            Name = cam.Name,
+            IpAddress = cam.IpAddress,
+            ViscaPort = cam.ViscaPort,
+            UniFiPortNumber = cam.UniFiPortNumber,
+            PanSpeed = cam.PanSpeed,
+            TiltSpeed = cam.TiltSpeed,
+            ZoomSpeed = cam.ZoomSpeed,
+            NumberOfPresets = cam.NumberOfPresets
+        };
+    }
+
+    private void CancelEdit()
+    {
+        if (editingCamera?.Id == 0)
+        {
+            cameras?.Remove(editingCamera);
+        }
+        editingCamera = null;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (editingCamera == null) return;
+
+        if (editingCamera.Id == 0)
+        {
+            Db.Cameras.Add(editingCamera);
+        }
+        else
+        {
+            CameraInfo? cam = await Db.Cameras.FindAsync(editingCamera.Id);
+            if (cam != null)
+            {
+                cam.Name = editingCamera.Name;
+                cam.IpAddress = editingCamera.IpAddress;
+                cam.ViscaPort = editingCamera.ViscaPort;
+                cam.UniFiPortNumber = editingCamera.UniFiPortNumber;
+                cam.NumberOfPresets = editingCamera.NumberOfPresets;
+                Db.Cameras.Update(cam);
+            }
+        }
+
+        await Db.SaveChangesAsync();
+        editingCamera = null;
+        await LoadCameras();
+    }
+
+    private async Task DeleteCamera(CameraInfo cam)
+    {
+        Db.Cameras.Remove(cam);
+        await Db.SaveChangesAsync();
+        await LoadCameras();
+    }
+}

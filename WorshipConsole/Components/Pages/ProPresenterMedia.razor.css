@@ -1,88 +1,27 @@
-.text-teal {
-    color: #20c997 !important;
+.video-list {
+    max-height: 400px; 
+    overflow-y: auto;
 }
 
-.text-gray {
-    color: #adb5bd !important;
+.thumbnail-container {
+    width: 80px; 
+    height: 45px; 
+    background: #000;
 }
 
-.navy-light-bg {
-    background-color: #1a1e21;
+.progress-container {
+    height: 8px;
 }
 
-.card {
-    border-radius: 12px;
+.youtube-list {
+    max-height: 300px; 
+    overflow-y: auto;
 }
 
-.video-preview {
-    max-width: 100%;
-    border-radius: 8px;
-    border: 1px solid #444;
+.modal-backdrop-dark {
+    background: rgba(0,0,0,0.8);
 }
 
-.video-item {
-    transition: background-color 0.2s;
-}
-
-.video-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Button Styles */
-.btn-teal {
-    background-color: #20c997 !important;
-    color: #0b192c !important;
-    border: none !important;
-    font-weight: 600 !important;
-    transition: all 0.2s ease-in-out !important;
-}
-
-.btn-teal:hover:not(:disabled) {
-    background-color: #1ba87e !important;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3) !important;
-}
-
-.btn-teal:disabled {
-    background-color: #30363d !important;
-    color: #8b949e !important;
-    opacity: 0.6;
-}
-
-.btn-outline-teal {
-    border: 1px solid #20c997 !important;
-    color: #20c997 !important;
-    background-color: transparent !important;
-}
-
-.btn-outline-teal:hover {
-    background-color: rgba(32, 201, 151, 0.1) !important;
-    color: #20c997 !important;
-}
-
-/* Fix for inputs and selects in dark cards */
-.card .form-control, 
-.card .form-select,
-.card .form-control:focus,
-.card .form-select:focus {
-    background-color: #0d1117 !important;
-    color: #ffffff !important;
-    border-color: #30363d !important;
-}
-
-/* Ensure ALL select options have white text and dark background */
-.card .form-select option,
-.form-select option {
-    background-color: #0d1117 !important;
-    color: #ffffff !important;
-}
-
-.card .form-control::placeholder {
-    color: #8b949e !important;
-}
-
-.card .form-control:focus, 
-.card .form-select:focus {
-    border-color: #20c997 !important;
-    box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.25) !important;
+.preview-video {
+    max-height: 70vh;
 }
