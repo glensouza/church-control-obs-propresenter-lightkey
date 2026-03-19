@@ -52,15 +52,67 @@ Open `WorshipConsole/appsettings.json` and fill in your ProPresenter machine's d
 
 ---
 
-## 3. Navigating to the ProPresenter Page
+## 3. Navigating to the ProPresenter Pages
 
-In the Worship Console web app, click **Media → ProPresenter** in the top navigation bar.
-
-*Note: Integration for slide and media control is currently in development.*
+In the Worship Console web app, click **Media → ProPresenter** to access the main hub, or use the sub-navigation to go directly to:
+- **[Slides](#4-slide-control-slides)** (`/slides`)
+- **[Media Management](#5-media-management-media)** (`/media`)
 
 ---
 
-## 4. Troubleshooting
+## 4. Slide Control (`/slides`)
+
+The Slides page provides a real-time remote for your active ProPresenter presentation.
+
+### Features
+- **Live Preview:** View the current slide being displayed in ProPresenter.
+- **Navigation:** Large, touch-friendly **Next** and **Previous** buttons.
+- **Thumbnail Preview:** See the upcoming and previous slides as small thumbnails before you switch to them.
+- **Clearing:** Individual buttons to **Clear Slide** (keep background/props) or **Clear All Layers** (emergency blackout).
+
+---
+
+## 5. Media Management (`/media`)
+
+The Media page allows you to manage local video files on the ProPresenter machine and download content from YouTube.
+
+### Welcome Video
+Upload and manage the "Welcome" loop video that plays before service. The system automatically handles renaming and placement in the configured `Welcome` folder.
+
+### Background Playlists
+Upload multiple motion backgrounds or video loops.
+- **Preview:** Click the eye icon to watch any video directly in the browser.
+- **Thumbnail Generation:** The console automatically generates JPEG thumbnails for uploaded videos using `FFmpeg`.
+
+### YouTube Downloader
+Paste any YouTube URL to download the video or just the audio (MP3) directly to the ProPresenter server.
+- **Formats:** Choose between high-quality video or audio-only.
+- **Automatic Storage:** Files are saved to the `YouTubeDownloads` folder configured in `appsettings.json`.
+- **Thumbnails:** The downloader also saves the video's thumbnail for easy identification.
+
+---
+
+## 6. Configuration (Advanced)
+
+The media features require `FFmpeg` to be installed on the server for thumbnail generation.
+
+```json
+{
+  "ProPresenter": {
+    "Host": "10.10.10.245",
+    "Port": 20000,
+    "MediaRootPath": "C:\\Media",
+    "FfmpegPath": "C:\\FFmpeg\\bin",
+    "WelcomeVideoFolder": "Welcome",
+    "BackgroundVideosFolder": "Backgrounds",
+    "YouTubeDownloadsFolder": "YouTube"
+  }
+}
+```
+
+---
+
+## 7. Troubleshooting
 
 ### Connection Failed
 - Verify ProPresenter is open and the machine is awake.

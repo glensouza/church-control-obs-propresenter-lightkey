@@ -8,18 +8,21 @@ A unified AV control panel for worship teams, combining OBS, ProPresenter, and L
 
 - **[OBS Control](docs/OBS.md)** — Scene switching and output management.
 - **[Camera Control](docs/Cameras.md)** — PTZ and PoE power management.
-- **[ProPresenter](docs/ProPresenter.md)** — Slide and media control.
+- **[ProPresenter](docs/ProPresenter.md)** — Slide and media management.
 - **[Planning Center](docs/PlanningCenter.md)** — Team and schedule integration.
+- **[Pageant Production](docs/Pageant.md)** — Scripted production cues and sync.
+- **[Lighting Control](docs/Lights.md)** — Cues and planned Lightkey integration.
 
 ---
 
 ## Features
 
-- **OBS Control** — Switch scenes, manage streaming and recording, studio mode, virtual camera, replay buffer, profile/scene-collection switching
-- **Camera Control** — Remote PTZ (Pan, Tilt, Zoom) for VISCA-over-IP cameras and UniFi PoE power management.
-- **ProPresenter** — Slide advancement and media control *(in development)*
-- **Lightkey** — Lighting cue triggers and intensity control *(coming soon)*
-- **Planning Center** — Real-time team assignment visibility.
+- **OBS Control** — Full remote control via WebSocket v5. Switch scenes, manage streaming/recording, and toggle Studio Mode.
+- **Camera Control** — Remote PTZ (Pan, Tilt, Zoom) for VISCA-over-IP cameras and UniFi PoE power management for hard reboots.
+- **ProPresenter** — Remote slide advancement with thumbnails, media uploads (Welcome/Backgrounds), and a built-in YouTube downloader.
+- **Pageant** — Centralized scripted production dashboard with dedicated views for directors, livestream operators, and lighting teams.
+- **Planning Center** — Real-time visibility of scheduled team members for upcoming services.
+- **Lightkey** — Lighting cue triggers and intensity control *(coming soon)*.
 
 ---
 
