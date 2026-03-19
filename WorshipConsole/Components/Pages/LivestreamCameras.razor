@@ -12,15 +12,17 @@
         <h2 class="fw-bold text-white mb-0">
             <i class="fa-solid fa-video me-2 text-teal"></i> Cameras
         </h2>
+        @*
         <a href="/admin/cameras" class="btn btn-outline-secondary btn-sm">
             <i class="fa-solid fa-gear me-1"></i> Admin
         </a>
+        *@
     </div>
 
     @if (cameras.Count == 0)
     {
         <div class="alert alert-secondary navy-light-bg text-white border-secondary">
-            No cameras are configured. Add camera entries in the <a href="/admin/cameras" class="text-teal">Camera Admin</a> page.
+            No cameras are configured. Add camera entries in the <a href="/admin" class="text-teal">Camera Admin</a> page.
         </div>
     }
     else

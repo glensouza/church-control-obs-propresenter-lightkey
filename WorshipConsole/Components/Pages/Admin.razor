@@ -15,8 +15,8 @@
 
     <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link @(activeTab == "general" ? "active" : "")" @onclick='() => SetTab("general")'>
-                <i class="fa-solid fa-sliders me-1"></i> General Settings
+            <button class="nav-link @(activeTab == "obs" ? "active" : "")" @onclick='() => SetTab("obs")'>
+                <i class="fa-solid fa-broadcast-tower me-1"></i> OBS Settings
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -24,17 +24,26 @@
                 <i class="fa-solid fa-camera me-1"></i> Camera Admin
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "propresenter" ? "active" : "")" @onclick='() => SetTab("propresenter")'>
+                <i class="fa-solid fa-desktop me-1"></i> ProPresenter
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "pco" ? "active" : "")" @onclick='() => SetTab("pco")'>
+                <i class="fa-solid fa-users me-1"></i> Planning Center
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content">
-        @if (activeTab == "general")
+        @if (activeTab == "obs")
         {
             <div class="row g-4">
-                <!-- OBS Settings -->
-                <div class="col-md-6">
-                    <div class="card bg-dark border-secondary h-100">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card bg-dark border-secondary">
                         <div class="card-header border-secondary navy-light-bg">
-                            <h5 class="mb-0 text-white"><i class="fa-solid fa-broadcast-tower me-2 text-teal"></i> OBS Studio</h5>
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-broadcast-tower me-2 text-teal"></i> OBS Studio Configuration</h5>
                         </div>
                         <div class="card-body">
                             <div class="mb-3">
@@ -45,105 +54,19 @@
                                 <label class="form-label text-graySmall">WebSocket Port</label>
                                 <input type="number" class="form-control bg-dark text-white border-secondary" @bind="obsPort" />
                             </div>
-                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info">
+                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info mb-4">
                                 <i class="fa-solid fa-circle-info me-1"></i> OBS Password must be set in <code>appsettings.json</code>.
                             </div>
+                            
+                            <button class="btn btn-teal-glow px-4" @onclick="SaveObsSettings" disabled="@isSaving">
+                                <i class="fa-solid fa-save me-2"></i>Save OBS Settings
+                            </button>
+                            @if (saveStatus == "obs")
+                            {
+                                <span class="ms-3 text-success small">@saveMessage</span>
+                            }
                         </div>
                     </div>
-                </div>
-
-                <!-- ProPresenter Settings -->
-                <div class="col-md-6">
-                    <div class="card bg-dark border-secondary h-100">
-                        <div class="card-header border-secondary navy-light-bg">
-                            <h5 class="mb-0 text-white"><i class="fa-solid fa-desktop me-2 text-teal"></i> ProPresenter</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row g-2">
-                                <div class="col-sm-8 mb-3">
-                                    <label class="form-label text-graySmall">Host</label>
-                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proHost" />
-                                </div>
-                                <div class="col-sm-4 mb-3">
-                                    <label class="form-label text-graySmall">Port</label>
-                                    <input type="number" class="form-control bg-dark text-white border-secondary" @bind="proPort" />
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-graySmall">Media Root Path</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proMediaPath" />
-                                <div class="form-text text-graySmall">Where videos are stored on this server.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-graySmall">FFmpeg Path</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proFfmpegPath" />
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-sm-6 mb-3">
-                                    <label class="form-label text-graySmall">Welcome Video Folder</label>
-                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFolder" />
-                                </div>
-                                <div class="col-sm-6 mb-3">
-                                    <label class="form-label text-graySmall">Welcome Video File</label>
-                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFile" />
-                                </div>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-sm-6 mb-3">
-                                    <label class="form-label text-graySmall">Backgrounds Folder</label>
-                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proBackgroundsFolder" />
-                                </div>
-                                <div class="col-sm-6 mb-3">
-                                    <label class="form-label text-graySmall">YouTube Downloads Folder</label>
-                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proYouTubeFolder" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- PCO Settings -->
-                <div class="col-md-6">
-                    <div class="card bg-dark border-secondary h-100">
-                        <div class="card-header border-secondary navy-light-bg">
-                            <h5 class="mb-0 text-white"><i class="fa-solid fa-users me-2 text-teal"></i> Planning Center Online</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label class="form-label text-graySmall">ProPresenter Position Name</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoProPos" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-graySmall">Livestream Position Name</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoLivePos" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-graySmall">Worship Coordinator Position Name</label>
-                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoWorshipPos" />
-                            </div>
-                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info">
-                                <i class="fa-solid fa-circle-info me-1"></i> API Credentials must be set in <code>appsettings.json</code>.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-12 mt-3 mb-5">
-                    <button class="btn btn-teal-glow px-4" @onclick="SaveGeneralSettings" disabled="@isSaving">
-                        @if (isSaving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span>Saving...</span>
-                        }
-                        else
-                        {
-                            <i class="fa-solid fa-save me-2"></i><span>Save All General Settings</span>
-                        }
-                    </button>
-                    @if (!string.IsNullOrEmpty(saveMessage))
-                    {
-                        <span class="ms-3 text-success">@saveMessage</span>
-                    }
                 </div>
             </div>
         }
@@ -268,14 +191,117 @@
                 </div>
             </div>
         }
+        else if (activeTab == "propresenter")
+        {
+            <div class="row g-4">
+                <div class="col-md-10 col-lg-8">
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-desktop me-2 text-teal"></i> ProPresenter Integration</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-8">
+                                    <label class="form-label text-graySmall">Host</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proHost" />
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label text-graySmall">Port</label>
+                                    <input type="number" class="form-control bg-dark text-white border-secondary" @bind="proPort" />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Media Root Path</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proMediaPath" />
+                                <div class="form-text text-graySmall">The absolute path where videos are stored on this server.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">FFmpeg Binary Path</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proFfmpegPath" />
+                                <div class="form-text text-graySmall">Path to ffmpeg executable or bin folder.</div>
+                            </div>
+                            
+                            <hr class="border-secondary my-4" />
+                            <h6 class="text-teal mb-3">Sub-folder Organization</h6>
+                            
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-6">
+                                    <label class="form-label text-graySmall">Welcome Video Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFolder" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label text-graySmall">Welcome Video Filename</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proWelcomeFile" />
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-sm-6">
+                                    <label class="form-label text-graySmall">Backgrounds Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proBackgroundsFolder" />
+                                </div>
+                                <div class="col-sm-6">
+                                    <label class="form-label text-graySmall">YouTube Downloads Folder</label>
+                                    <input type="text" class="form-control bg-dark text-white border-secondary" @bind="proYouTubeFolder" />
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-teal-glow px-4" @onclick="SaveProSettings" disabled="@isSaving">
+                                <i class="fa-solid fa-save me-2"></i>Save ProPresenter Settings
+                            </button>
+                            @if (saveStatus == "pro")
+                            {
+                                <span class="ms-3 text-success small">@saveMessage</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "pco")
+        {
+            <div class="row g-4">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-header border-secondary navy-light-bg">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-users me-2 text-teal"></i> Planning Center Integration</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">ProPresenter Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoProPos" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Livestream Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoLivePos" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-graySmall">Worship Coordinator Position Name</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" @bind="pcoWorshipPos" />
+                            </div>
+                            <div class="alert alert-info py-2 small border-0 bg-opacity-10 text-info mb-4">
+                                <i class="fa-solid fa-circle-info me-1"></i> API Credentials must be set in <code>appsettings.json</code>.
+                            </div>
+                            
+                            <button class="btn btn-teal-glow px-4" @onclick="SavePcoSettings" disabled="@isSaving">
+                                <i class="fa-solid fa-save me-2"></i>Save PCO Settings
+                            </button>
+                            @if (saveStatus == "pco")
+                            {
+                                <span class="ms-3 text-success small">@saveMessage</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
-
-    private string activeTab = "general";
+    private string activeTab = "obs";
     private bool isSaving = false;
     private string? saveMessage;
+    private string? saveStatus;
 
     // OBS Settings
     private string obsHost = "";
@@ -306,7 +332,12 @@
         await LoadCameras();
     }
 
-    private void SetTab(string tab) => activeTab = tab;
+    private void SetTab(string tab) 
+    {
+        activeTab = tab;
+        saveMessage = null;
+        saveStatus = null;
+    }
 
     private async Task LoadGeneralSettings()
     {
@@ -327,17 +358,26 @@
         pcoWorshipPos = await Settings.GetSettingAsync("Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
     }
 
-    private async Task SaveGeneralSettings()
+    private async Task SaveObsSettings()
     {
         isSaving = true;
-        saveMessage = null;
-        StateHasChanged();
-
+        saveStatus = "obs";
         try
         {
             await Settings.SaveSettingAsync("OBS", "Host", obsHost);
             await Settings.SaveSettingAsync("OBS", "Port", obsPort.ToString());
+            saveMessage = "OBS settings saved!";
+        }
+        catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
+        finally { isSaving = false; }
+    }
 
+    private async Task SaveProSettings()
+    {
+        isSaving = true;
+        saveStatus = "pro";
+        try
+        {
             await Settings.SaveSettingAsync("ProPresenter", "Host", proHost);
             await Settings.SaveSettingAsync("ProPresenter", "Port", proPort.ToString());
             await Settings.SaveSettingAsync("ProPresenter", "MediaRootPath", proMediaPath);
@@ -346,22 +386,25 @@
             await Settings.SaveSettingAsync("ProPresenter", "WelcomeVideoFileName", proWelcomeFile);
             await Settings.SaveSettingAsync("ProPresenter", "BackgroundVideosFolder", proBackgroundsFolder);
             await Settings.SaveSettingAsync("ProPresenter", "YouTubeDownloadsFolder", proYouTubeFolder);
+            saveMessage = "ProPresenter settings saved!";
+        }
+        catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
+        finally { isSaving = false; }
+    }
 
+    private async Task SavePcoSettings()
+    {
+        isSaving = true;
+        saveStatus = "pco";
+        try
+        {
             await Settings.SaveSettingAsync("Pco", "ProPresenterPosition", pcoProPos);
             await Settings.SaveSettingAsync("Pco", "LivestreamPosition", pcoLivePos);
             await Settings.SaveSettingAsync("Pco", "WorshipCoordinatorPosition", pcoWorshipPos);
-
-            saveMessage = "Settings saved successfully!";
+            saveMessage = "PCO settings saved!";
         }
-        catch (Exception ex)
-        {
-            saveMessage = $"Error: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
+        catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
+        finally { isSaving = false; }
     }
 
     // --- Camera Admin Logic ---

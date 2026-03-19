@@ -6,3 +6,39 @@
     width: 16px; 
     height: 16px;
 }
+
+/* Remove dropdown arrows (carets) */
+.dropdown-toggle::after {
+    display: none !important;
+}
+
+/* Ensure the link and the (now invisible) toggle button stay on the same line */
+.nav-item.dropdown {
+    display: flex;
+    align-items: center;
+}
+
+/* Remove default button styling from the split toggle so it doesn't create weird gaps */
+.dropdown-toggle-split {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    background: none;
+    border: none;
+}
+
+/* Enable hover dropdowns on desktop */
+@media (min-width: 992px) {
+    .nav-item.dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+        top: 100%; /* Force it below the nav item */
+        left: 0;
+        /* Add a small invisible bridge to prevent mouse-out flickering */
+        border-top: 10px solid transparent; 
+        background-clip: padding-box;
+    }
+    
+    .nav-item.dropdown {
+        position: relative;
+    }
+}
