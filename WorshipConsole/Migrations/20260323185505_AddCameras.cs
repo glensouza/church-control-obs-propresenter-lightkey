@@ -2,14 +2,18 @@
 
 #nullable disable
 
-namespace WorshipConsole.Migrations
+namespace Corona.Pageant.Migrations
 {
     /// <inheritdoc />
-    public partial class AddCamerasTable : Migration
+    public partial class AddCameras : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "NavClass",
+                table: "Scripts");
+
             migrationBuilder.CreateTable(
                 name: "Cameras",
                 columns: table => new
@@ -36,6 +40,12 @@ namespace WorshipConsole.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Cameras");
+
+            migrationBuilder.AddColumn<string>(
+                name: "NavClass",
+                table: "Scripts",
+                type: "TEXT",
+                nullable: true);
         }
     }
 }

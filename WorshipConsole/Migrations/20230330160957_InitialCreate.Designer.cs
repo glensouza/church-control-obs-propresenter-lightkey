@@ -7,19 +7,19 @@ using WorshipConsole.Database;
 
 #nullable disable
 
-namespace WorshipConsole.Migrations
+namespace Corona.Pageant.Migrations
 {
     [DbContext(typeof(PageantDb))]
-    [Migration("20260314012437_InitialCreate")]
+    [Migration("20230330160957_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.4");
 
-            modelBuilder.Entity("WorshipConsole.Models.Script", b =>
+            modelBuilder.Entity("Corona.Pageant.Models.Scripts", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -50,26 +50,8 @@ namespace WorshipConsole.Migrations
                     b.Property<string>("Camera3Position")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("HouseLights")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("LightingNotes")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Scene")
                         .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SceneLength")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SpotlightLeft")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SpotlightRight")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StageLightScene")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SwitchToScene")
@@ -85,21 +67,21 @@ namespace WorshipConsole.Migrations
                     b.ToTable("Scripts");
                 });
 
-            modelBuilder.Entity("WorshipConsole.Models.Settings", b =>
+            modelBuilder.Entity("Corona.Pageant.Models.Settings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Category")
+                    b.Property<string>("Setting")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Key")
+                    b.Property<string>("SettingId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Value")
+                    b.Property<string>("SettingType")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

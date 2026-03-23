@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace WorshipConsole.Migrations
+namespace Corona.Pageant.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -18,7 +18,6 @@ namespace WorshipConsole.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     Act = table.Column<string>(type: "TEXT", nullable: false),
                     Scene = table.Column<string>(type: "TEXT", nullable: false),
-                    SceneLength = table.Column<int>(type: "INTEGER", nullable: false),
                     Text = table.Column<string>(type: "TEXT", nullable: false),
                     SwitchToScene = table.Column<string>(type: "TEXT", nullable: false),
                     Camera1Action = table.Column<string>(type: "TEXT", nullable: false),
@@ -26,12 +25,7 @@ namespace WorshipConsole.Migrations
                     Camera2Action = table.Column<string>(type: "TEXT", nullable: false),
                     Camera2Position = table.Column<string>(type: "TEXT", nullable: true),
                     Camera3Action = table.Column<string>(type: "TEXT", nullable: false),
-                    Camera3Position = table.Column<string>(type: "TEXT", nullable: true),
-                    StageLightScene = table.Column<string>(type: "TEXT", nullable: true),
-                    SpotlightLeft = table.Column<string>(type: "TEXT", nullable: true),
-                    SpotlightRight = table.Column<string>(type: "TEXT", nullable: true),
-                    HouseLights = table.Column<string>(type: "TEXT", nullable: true),
-                    LightingNotes = table.Column<string>(type: "TEXT", nullable: true)
+                    Camera3Position = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -44,9 +38,9 @@ namespace WorshipConsole.Migrations
                 {
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
-                    Category = table.Column<string>(type: "TEXT", nullable: false),
-                    Key = table.Column<string>(type: "TEXT", nullable: false),
-                    Value = table.Column<string>(type: "TEXT", nullable: false)
+                    SettingType = table.Column<string>(type: "TEXT", nullable: false),
+                    SettingId = table.Column<string>(type: "TEXT", nullable: false),
+                    Setting = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {

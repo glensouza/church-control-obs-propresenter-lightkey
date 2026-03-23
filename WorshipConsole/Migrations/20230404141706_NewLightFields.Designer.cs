@@ -7,56 +7,19 @@ using WorshipConsole.Database;
 
 #nullable disable
 
-namespace WorshipConsole.Migrations
+namespace Corona.Pageant.Migrations
 {
     [DbContext(typeof(PageantDb))]
-    [Migration("20260317043207_AddCamerasTable")]
-    partial class AddCamerasTable
+    [Migration("20230404141706_NewLightFields")]
+    partial class NewLightFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.4");
+            modelBuilder.HasAnnotation("ProductVersion", "7.0.4");
 
-            modelBuilder.Entity("WorshipConsole.Models.CameraInfo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("NumberOfPresets")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("PanSpeed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("TiltSpeed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("UniFiPortNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ViscaPort")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ZoomSpeed")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Cameras");
-                });
-
-            modelBuilder.Entity("WorshipConsole.Models.Script", b =>
+            modelBuilder.Entity("Corona.Pageant.Shared.Scripts", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -90,15 +53,12 @@ namespace WorshipConsole.Migrations
                     b.Property<string>("HouseLights")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("LightingNotes")
+                    b.Property<string>("NavClass")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Scene")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("SceneLength")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SpotlightLeft")
                         .HasColumnType("TEXT");
@@ -122,21 +82,21 @@ namespace WorshipConsole.Migrations
                     b.ToTable("Scripts");
                 });
 
-            modelBuilder.Entity("WorshipConsole.Models.Settings", b =>
+            modelBuilder.Entity("Corona.Pageant.Shared.Settings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Category")
+                    b.Property<string>("Setting")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Key")
+                    b.Property<string>("SettingId")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Value")
+                    b.Property<string>("SettingType")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

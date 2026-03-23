@@ -18,8 +18,8 @@ public class SettingsService
     public async Task<string> GetSettingAsync(string category, string key, string defaultValue = "")
     {
         await using PageantDb db = await this.dbFactory.CreateDbContextAsync();
-        Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
-        if (setting != null) return setting.Value;
+        Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.SettingType == category && s.SettingId == key);
+        if (setting != null) return setting.Setting;
 
         // Fallback to configuration
         string configKey = string.IsNullOrEmpty(category) ? key : $"{category}:{key}";
@@ -35,16 +35,16 @@ public class SettingsService
     public async Task SaveSettingAsync(string category, string key, string value)
     {
         await using PageantDb db = await this.dbFactory.CreateDbContextAsync();
-        Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
+        Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.SettingType == category && s.SettingId == key);
 
         if (setting == null)
         {
-            setting = new Settings { Category = category, Key = key, Value = value };
+            setting = new Settings { SettingType = category, SettingId = key, Setting = value };
             db.Settings.Add(setting);
         }
         else
         {
-            setting.Value = value;
+            setting.Setting = value;
             db.Settings.Update(setting);
         }
 
@@ -82,12 +82,12 @@ public class SettingsService
 
     private async Task EnsureSetting(PageantDb db, string category, string key, string defaultValue)
     {
-        bool exists = await db.Settings.AnyAsync(s => s.Category == category && s.Key == key);
+        bool exists = await db.Settings.AnyAsync(s => s.SettingType == category && s.SettingId == key);
         if (!exists)
         {
             string configKey = $"{category}:{key}";
             string value = this.configuration[configKey] ?? defaultValue;
-            db.Settings.Add(new Settings { Category = category, Key = key, Value = value });
+            db.Settings.Add(new Settings { SettingType = category, SettingId = key, Setting = value });
         }
     }
 }
