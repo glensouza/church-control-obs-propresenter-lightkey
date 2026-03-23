@@ -36,6 +36,11 @@ public class Script
 
     public string? Camera3Position { get; set; }
 
+    [Required]
+    public string Camera4Action { get; set; } = string.Empty;
+
+    public string? Camera4Position { get; set; }
+
     public string? StageLightScene { get; set; }
     public string? SpotlightLeft { get; set; }
     public string? SpotlightRight { get; set; }

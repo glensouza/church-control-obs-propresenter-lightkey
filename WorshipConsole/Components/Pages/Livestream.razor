@@ -1,5 +1,5 @@
 @page "/livestream"
-@using WorshipConsole.Services
+
 @inject SettingsService SettingsService
 @inject IJSRuntime JSRuntime
 
@@ -160,9 +160,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        churchName = await SettingsService.GetSettingAsync("General", "ChurchName", "Corona SDA Church");
-        youtubeHandle = await SettingsService.GetSettingAsync("General", "YouTubeHandle", "CoronaSDAChurch");
-        facebookHandle = await SettingsService.GetSettingAsync("General", "FacebookHandle", "CoronaSDAChurch");
+        churchName = await SettingsService.GetSettingAsync("General", "ChurchName", churchName);
+        youtubeHandle = await SettingsService.GetSettingAsync("General", "YouTubeHandle", youtubeHandle);
+        facebookHandle = await SettingsService.GetSettingAsync("General", "FacebookHandle", facebookHandle);
         
         // Default to today if Saturday, else next Saturday
         int daysUntilSaturday = ((int)DayOfWeek.Saturday - (int)DateTime.Today.DayOfWeek + 7) % 7;

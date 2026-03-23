@@ -42,3 +42,11 @@
 .obs-live-preview-container {
     max-width: 640px;
 }
+
+.alert-obs {
+    background: rgba(46, 156, 202, 0.15);
+    border: 1px solid var(--tech-teal);
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}

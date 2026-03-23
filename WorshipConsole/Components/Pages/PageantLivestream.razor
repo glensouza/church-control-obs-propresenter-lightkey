@@ -1,4 +1,4 @@
-﻿@page "/pageant/livestream"
+@page "/pageant/livestream"
 @inject IDbContextFactory<PageantDb> DbFactory
 @rendermode InteractiveServer
 
@@ -38,7 +38,7 @@
                             <i class="fa-solid fa-list-ol text-teal me-2"></i>Script Navigation
                         </h6>
                     </div>
-                    <div class="card-body p-0 script-nav-body">
+                    <div class="card-body p-0 script-nav-body" style="max-height: 70vh; overflow-y: auto;">
                         @foreach (Script script in scripts)
                         {
                             <button class="btn w-100 text-start px-3 py-2 rounded-0 border-0 border-bottom border-secondary script-nav-btn @(currentScript?.Id == script.Id ? "active-scene" : "")"
@@ -86,70 +86,46 @@
                                 </div>
                             }
                             <div class="bg-dark p-3 rounded border border-secondary">
-                                <p class="mb-0 text-gray">@currentScript.Text</p>
+                                <p class="mb-0 text-gray fs-5">@currentScript.Text</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Camera Cues -->
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="card navy-light-bg text-white border-secondary h-100">
-                                <div class="card-header border-secondary text-center">
-                                    <h6 class="mb-0 fw-bold">
-                                        <i class="fa-solid fa-video text-teal me-2"></i>Camera 1
-                                    </h6>
-                                </div>
-                                <div class="card-body text-center">
-                                    <div class="fs-4 fw-bold mb-1">@(string.IsNullOrEmpty(currentScript.Camera1Action) ? "—" : currentScript.Camera1Action)</div>
-                                    @if (!string.IsNullOrEmpty(currentScript.Camera1Position))
-                                    {
-                                        <div class="text-gray small">@currentScript.Camera1Position</div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card navy-light-bg text-white border-secondary h-100">
-                                <div class="card-header border-secondary text-center">
-                                    <h6 class="mb-0 fw-bold">
-                                        <i class="fa-solid fa-video text-teal me-2"></i>Camera 2
-                                    </h6>
-                                </div>
-                                <div class="card-body text-center">
-                                    <div class="fs-4 fw-bold mb-1">@(string.IsNullOrEmpty(currentScript.Camera2Action) ? "—" : currentScript.Camera2Action)</div>
-                                    @if (!string.IsNullOrEmpty(currentScript.Camera2Position))
-                                    {
-                                        <div class="text-gray small">@currentScript.Camera2Position</div>
-                                    }
+                        @for (int i = 1; i <= Math.Max(4, cameras.Count); i++)
+                        {
+                            int camIndex = i;
+                            string camName = i <= cameras.Count ? cameras[i - 1].Name : $"Camera {i}";
+                            string action = GetCamAction(currentScript, camIndex);
+                            string pos = GetCamPos(currentScript, camIndex);
+                            
+                            <div class="col-md-3">
+                                <div class="card navy-light-bg text-white border-secondary h-100">
+                                    <div class="card-header border-secondary text-center py-2 bg-dark bg-opacity-50">
+                                        <h6 class="mb-0 fw-bold">
+                                            <i class="fa-solid fa-video text-teal me-2"></i>@camName
+                                        </h6>
+                                    </div>
+                                    <div class="card-body text-center d-flex flex-column justify-content-center">
+                                        <div class="fs-4 fw-bold mb-1">@(string.IsNullOrEmpty(action) ? "—" : action)</div>
+                                        @if (!string.IsNullOrEmpty(pos))
+                                        {
+                                            <div class="text-gray small mt-2">@pos</div>
+                                        }
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card navy-light-bg text-white border-secondary h-100">
-                                <div class="card-header border-secondary text-center">
-                                    <h6 class="mb-0 fw-bold">
-                                        <i class="fa-solid fa-video text-teal me-2"></i>Camera 3
-                                    </h6>
-                                </div>
-                                <div class="card-body text-center">
-                                    <div class="fs-4 fw-bold mb-1">@(string.IsNullOrEmpty(currentScript.Camera3Action) ? "—" : currentScript.Camera3Action)</div>
-                                    @if (!string.IsNullOrEmpty(currentScript.Camera3Position))
-                                    {
-                                        <div class="text-gray small">@currentScript.Camera3Position</div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
+                        }
                     </div>
 
                     <!-- Next / Prev navigation -->
-                    <div class="d-flex justify-content-between gap-3">
-                        <button class="btn btn-outline-teal px-4" @onclick="PreviousScene" disabled="@(currentIndex <= 0)">
-                            <i class="fa-solid fa-chevron-left me-2"></i>Previous Scene
+                    <div class="d-flex justify-content-between gap-3 mt-4">
+                        <button class="btn btn-outline-teal px-5 py-3 fw-bold" @onclick="PreviousScene" disabled="@(currentIndex <= 0)">
+                            <i class="fa-solid fa-chevron-left me-2"></i>PREVIOUS
                         </button>
-                        <button class="btn btn-teal-glow px-4" @onclick="NextScene" disabled="@(currentIndex >= scripts.Count - 1)">
-                            Next Scene<i class="fa-solid fa-chevron-right ms-2"></i>
+                        <button class="btn btn-teal-glow px-5 py-3 fw-bold fs-4" @onclick="NextScene" disabled="@(currentIndex >= scripts.Count - 1)">
+                            NEXT SCENE<i class="fa-solid fa-chevron-right ms-2"></i>
                         </button>
                     </div>
                 }
@@ -160,13 +136,19 @@
 
 @code {
     private List<Script>? scripts;
+    private List<CameraInfo> cameras = new();
     private Script? currentScript;
     private int currentIndex = -1;
 
     protected override async Task OnInitializedAsync()
     {
         await using PageantDb db = await DbFactory.CreateDbContextAsync();
-        scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
+        List<Script> rawScripts = await db.Scripts.ToListAsync();
+        scripts = rawScripts
+            .OrderBy(s => s.Act)
+            .ThenBy(s => s.Scene, new NaturalStringComparer())
+            .ToList();
+        cameras = await db.Cameras.OrderBy(c => c.Id).ToListAsync();
     }
 
     private void SelectScene(Script script)
@@ -188,5 +170,45 @@
         currentIndex--;
         currentScript = scripts[currentIndex];
     }
-}
 
+    private string GetCamAction(Script s, int i) => i switch { 
+        1 => s.Camera1Action, 
+        2 => s.Camera2Action, 
+        3 => s.Camera3Action, 
+        4 => s.Camera4Action, 
+        _ => "" 
+    };
+    
+    private string GetCamPos(Script s, int i) => i switch { 
+        1 => s.Camera1Position??"", 
+        2 => s.Camera2Position??"", 
+        3 => s.Camera3Position??"", 
+        4 => s.Camera4Position??"", 
+        _ => "" 
+    };
+
+    public class NaturalStringComparer : IComparer<string>
+    {
+        public int Compare(string? x, string? y)
+        {
+            if (x == y) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+            string[] xParts = x.Split('.');
+            string[] yParts = y.Split('.');
+            for (int i = 0; i < Math.Min(xParts.Length, yParts.Length); i++)
+            {
+                if (int.TryParse(xParts[i], out int xInt) && int.TryParse(yParts[i], out int yInt))
+                {
+                    if (xInt != yInt) return xInt.CompareTo(yInt);
+                }
+                else
+                {
+                    int partCmp = string.Compare(xParts[i], yParts[i], StringComparison.OrdinalIgnoreCase);
+                    if (partCmp != 0) return partCmp;
+                }
+            }
+            return xParts.Length.CompareTo(yParts.Length);
+        }
+    }
+}

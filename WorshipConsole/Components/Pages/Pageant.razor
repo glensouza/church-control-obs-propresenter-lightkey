@@ -1,4 +1,4 @@
-﻿@page "/pageant"
+@page "/pageant"
 @inject IDbContextFactory<PageantDb> DbFactory
 @rendermode InteractiveServer
 
@@ -7,8 +7,21 @@
 <div class="container py-4">
     <div class="d-flex align-items-center mb-4">
         <i class="fa-solid fa-star text-teal me-3 fs-3"></i>
-        <h1 class="fw-bold mb-0">Pageant Script</h1>
-    </div>
+        <h1 class="fw-bold mb-0 flex-grow-1">Pageant Script</h1>
+        @if (scripts.Any())
+        {
+            <div class="col-auto ms-auto">
+                <span class="badge bg-teal text-dark fw-semibold px-3 py-2">
+                    @FilteredScripts.Count() scenes
+                </span>
+            </div>
+        }
+        @*
+        <button class="btn btn-teal-glow" @onclick="AddNewScriptAtEnd">
+            <i class="fa-solid fa-plus me-2"></i>Add New Scene
+        </button>
+        *@
+        </div>
 
     @if (scripts == null)
     {
@@ -30,6 +43,7 @@
     else
     {
         <div class="row mb-4 g-3 align-items-center">
+            @*
             <div class="col-auto">
                 <label class="text-gray fw-semibold">Filter by Act:</label>
             </div>
@@ -47,156 +61,410 @@
                     @FilteredScripts.Count() scenes
                 </span>
             </div>
+            *@
         </div>
 
         <div class="row g-3">
             @foreach (Script script in FilteredScripts)
             {
                 <div class="col-12">
-                    <div class="card navy-light-bg text-white border-secondary script-card @(selectedScript?.Id == script.Id ? "border-teal" : "") script-card-clickable"
-                         @onclick="() => SelectScript(script)">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
+                    <div class="card navy-light-bg text-white border-secondary script-card @(expandedScriptId == script.Id ? "border-teal" : "")">
+                        <div class="card-body script-card-clickable" @onclick="() => ToggleExpand(script.Id)">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <i class="fa-solid @(expandedScriptId == script.Id ? "fa-chevron-down" : "fa-chevron-right") text-teal me-3"></i>
                                     <span class="badge bg-teal text-dark me-2">@script.Act</span>
-                                    <span class="fw-bold">@script.Scene</span>
+                                    <span class="fw-bold fs-5">@script.Scene</span>
                                 </div>
-                                <span class="text-gray small">
-                                    <i class="fa-regular fa-clock me-1"></i>@script.SceneLength sec
-                                </span>
-                            </div>
-                            <p class="text-gray mb-2 small">@script.Text</p>
-                            @if (!string.IsNullOrEmpty(script.SwitchToScene))
-                            {
-                                <div class="mt-2">
-                                    <span class="text-teal small">
-                                        <i class="fa-solid fa-film me-1"></i>OBS: @script.SwitchToScene
+                                <div class="text-end">
+                                    <span class="text-gray small d-block">
+                                        <i class="fa-regular fa-clock me-1"></i>@script.SceneLength sec
                                     </span>
+                                    @if (!string.IsNullOrEmpty(script.SwitchToScene))
+                                    {
+                                        <span class="text-teal small">
+                                            <i class="fa-solid fa-film me-1"></i>@script.SwitchToScene
+                                        </span>
+                                    }
                                 </div>
+                            </div>
+                            @if (expandedScriptId != script.Id)
+                            {
+                                <p class="text-gray mt-2 mb-0 small text-truncate">@script.Text</p>
                             }
                         </div>
-                    </div>
-                </div>
-            }
-        </div>
 
-        @if (selectedScript != null)
-        {
-            <div class="card navy-light-bg text-white border-secondary mt-4 detail-panel">
-                <div class="card-header border-secondary d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold">
-                        <i class="fa-solid fa-circle-info text-teal me-2"></i>Script Detail
-                    </h5>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="() => selectedScript = null">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <h6 class="text-teal fw-semibold mb-3">
-                                <i class="fa-solid fa-clapperboard me-2"></i>Scene Info
-                            </h6>
-                            <dl class="row mb-0">
-                                <dt class="col-sm-4 text-gray">Act</dt>
-                                <dd class="col-sm-8">@selectedScript.Act</dd>
-                                <dt class="col-sm-4 text-gray">Scene</dt>
-                                <dd class="col-sm-8">@selectedScript.Scene</dd>
-                                <dt class="col-sm-4 text-gray">Length</dt>
-                                <dd class="col-sm-8">@selectedScript.SceneLength seconds</dd>
-                                <dt class="col-sm-4 text-gray">OBS Scene</dt>
-                                <dd class="col-sm-8">@(string.IsNullOrEmpty(selectedScript.SwitchToScene) ? "—" : selectedScript.SwitchToScene)</dd>
-                            </dl>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-teal fw-semibold mb-3">
-                                <i class="fa-solid fa-video me-2"></i>Camera Cues
-                            </h6>
-                            <dl class="row mb-0">
-                                <dt class="col-sm-4 text-gray">Cam 1</dt>
-                                <dd class="col-sm-8">@selectedScript.Camera1Action @(string.IsNullOrEmpty(selectedScript.Camera1Position) ? "" : $"({selectedScript.Camera1Position})")</dd>
-                                <dt class="col-sm-4 text-gray">Cam 2</dt>
-                                <dd class="col-sm-8">@selectedScript.Camera2Action @(string.IsNullOrEmpty(selectedScript.Camera2Position) ? "" : $"({selectedScript.Camera2Position})")</dd>
-                                <dt class="col-sm-4 text-gray">Cam 3</dt>
-                                <dd class="col-sm-8">@selectedScript.Camera3Action @(string.IsNullOrEmpty(selectedScript.Camera3Position) ? "" : $"({selectedScript.Camera3Position})")</dd>
-                            </dl>
-                        </div>
-                        <div class="col-12">
-                            <h6 class="text-teal fw-semibold mb-2">
-                                <i class="fa-solid fa-align-left me-2"></i>Script Text
-                            </h6>
-                            <div class="bg-dark p-3 rounded border border-secondary">
-                                <p class="mb-0">@selectedScript.Text</p>
-                            </div>
-                        </div>
-                        @if (!string.IsNullOrEmpty(selectedScript.StageLightScene) || !string.IsNullOrEmpty(selectedScript.LightingNotes))
+                        @if (expandedScriptId == script.Id)
                         {
-                            <div class="col-12">
-                                <h6 class="text-teal fw-semibold mb-3">
-                                    <i class="fa-solid fa-lightbulb me-2"></i>Lighting
-                                </h6>
-                                <dl class="row mb-0">
-                                    @if (!string.IsNullOrEmpty(selectedScript.StageLightScene))
-                                    {
-                                        <dt class="col-sm-3 text-gray">Stage Scene</dt>
-                                        <dd class="col-sm-9">@selectedScript.StageLightScene</dd>
-                                    }
-                                    @if (!string.IsNullOrEmpty(selectedScript.SpotlightLeft))
-                                    {
-                                        <dt class="col-sm-3 text-gray">Spotlight L</dt>
-                                        <dd class="col-sm-9">@selectedScript.SpotlightLeft</dd>
-                                    }
-                                    @if (!string.IsNullOrEmpty(selectedScript.SpotlightRight))
-                                    {
-                                        <dt class="col-sm-3 text-gray">Spotlight R</dt>
-                                        <dd class="col-sm-9">@selectedScript.SpotlightRight</dd>
-                                    }
-                                    @if (!string.IsNullOrEmpty(selectedScript.HouseLights))
-                                    {
-                                        <dt class="col-sm-3 text-gray">House Lights</dt>
-                                        <dd class="col-sm-9">@selectedScript.HouseLights</dd>
-                                    }
-                                    @if (!string.IsNullOrEmpty(selectedScript.LightingNotes))
-                                    {
-                                        <dt class="col-sm-3 text-gray">Notes</dt>
-                                        <dd class="col-sm-9">@selectedScript.LightingNotes</dd>
-                                    }
-                                </dl>
+                            <div class="card-footer border-secondary bg-black bg-opacity-25 p-4">
+                                <div class="row g-4">
+                                    <!-- Scene Edit -->
+                                    <div class="col-lg-6">
+                                        <h6 class="text-teal fw-semibold mb-3 border-bottom border-secondary pb-2">
+                                            <i class="fa-solid fa-clapperboard me-2"></i>Scene Properties
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-sm-4">
+                                                <label class="form-label text-graySmall">Act</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.Act" />
+                                            </div>
+                                            <div class="col-sm-5">
+                                                <label class="form-label text-graySmall">Scene Name</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.Scene" />
+                                            </div>
+                                            <div class="col-sm-3">
+                                                <label class="form-label text-graySmall">Length (sec)</label>
+                                                <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.SceneLength" />
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label text-graySmall">OBS Scene Trigger</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.SwitchToScene" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Script Text Edit -->
+                                    <div class="col-lg-6">
+                                        <h6 class="text-teal fw-semibold mb-3 border-bottom border-secondary pb-2">
+                                            <i class="fa-solid fa-align-left me-2"></i>Script / Action Text
+                                        </h6>
+                                        <textarea class="form-control form-control-sm bg-dark text-white border-secondary" rows="5" @bind="script.Text"></textarea>
+                                    </div>
+
+                                    <!-- Camera Cues Edit -->
+                                    <div class="col-12">
+                                        <h6 class="text-teal fw-semibold mb-3 border-bottom border-secondary pb-2">
+                                            <i class="fa-solid fa-video me-2"></i>Camera Cues
+                                        </h6>
+                                        <div class="row g-3">
+                                            @for (int i = 1; i <= Math.Max(4, cameras.Count); i++)
+                                            {
+                                                int camIndex = i;
+                                                string camName = i <= cameras.Count ? cameras[i - 1].Name : $"Camera {i}";
+                                                <div class="col-md-3">
+                                                    <div class="p-2 border border-secondary rounded bg-dark bg-opacity-50">
+                                                        <label class="form-label text-teal small fw-bold mb-2">@camName</label>
+                                                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary mb-2" 
+                                                               placeholder="Action" 
+                                                               @bind:get="GetCamAction(script, camIndex)" 
+                                                               @bind:set="(v) => SetCamAction(script, camIndex, v)" />
+                                                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" 
+                                                               placeholder="Position/Notes" 
+                                                               @bind:get="GetCamPos(script, camIndex)" 
+                                                               @bind:set="(v) => SetCamPos(script, camIndex, v)" />
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- Lighting Edit -->
+                                    <div class="col-12">
+                                        <h6 class="text-teal fw-semibold mb-3 border-bottom border-secondary pb-2">
+                                            <i class="fa-solid fa-lightbulb me-2"></i>Lighting Cues
+                                        </h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-3">
+                                                <label class="form-label text-graySmall">Stage Scene</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.StageLightScene" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label text-graySmall">House Lights</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.HouseLights" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label text-graySmall">Spot L</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.SpotlightLeft" />
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label text-graySmall">Spot R</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.SpotlightRight" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label text-graySmall">Lighting Notes</label>
+                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.LightingNotes" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <button class="btn btn-outline-danger px-4 me-2" @onclick="() => DeleteScript(script)" disabled="@isSaving">
+                                                <i class="fa-solid fa-trash me-2"></i>Delete Scene
+                                            </button>
+                                            <button class="btn btn-outline-teal px-4" @onclick="() => InsertScriptAfter(script)" disabled="@isSaving">
+                                                <i class="fa-solid fa-plus me-2"></i>Insert Scene After
+                                            </button>
+                                        </div>
+                                        <div>
+                                            @if (saveSuccessId == script.Id)
+                                            {
+                                                <span class="me-3 text-success small"><i class="fa-solid fa-check me-1"></i>Saved!</span>
+                                            }
+                                            <button class="btn btn-teal-glow px-5" @onclick="() => SaveScript(script)" disabled="@isSaving">
+                                                <i class="fa-solid fa-save me-2"></i>@(isSaving ? "Saving..." : "Save Changes")
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         }
                     </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
     }
 </div>
 
 @code {
     private List<Script>? scripts;
-    private Script? selectedScript;
+    private List<CameraInfo> cameras = new();
+    private int? expandedScriptId;
     private string actFilter = string.Empty;
+    private bool isSaving = false;
+    private int? saveSuccessId;
+
     private IEnumerable<string> Acts => scripts?.Select(s => s.Act).Distinct().Order() ?? Enumerable.Empty<string>();
     private IEnumerable<Script> FilteredScripts =>
         scripts == null ? [] :
         string.IsNullOrEmpty(actFilter)
             ? scripts
-            : scripts.Where(s => s.Act == actFilter);
+            : scripts.OrderBy(s => s.Act).ThenBy(s => s.Scene);
 
     protected override async Task OnInitializedAsync()
     {
-        await using PageantDb db = await DbFactory.CreateDbContextAsync();
-        scripts = await db.Scripts.OrderBy(s => s.Act).ThenBy(s => s.Id).ToListAsync();
+        await LoadData();
     }
 
-    private void SelectScript(Script script)
+    private async Task LoadData()
     {
-        selectedScript = selectedScript?.Id == script.Id ? null : script;
+        await using PageantDb db = await DbFactory.CreateDbContextAsync();
+        // Custom sorting for numeric-string scenes
+        List<Script> rawScripts = await db.Scripts.ToListAsync();
+        scripts = rawScripts
+            .OrderBy(s => s.Act)
+            .ThenBy(s => s.Scene, new NaturalStringComparer())
+            .ToList();
+        cameras = await db.Cameras.OrderBy(c => c.Id).ToListAsync();
+    }
+
+    private void ToggleExpand(int scriptId)
+    {
+        expandedScriptId = expandedScriptId == scriptId ? null : scriptId;
+        saveSuccessId = null;
     }
 
     private void OnActFilterChanged(ChangeEventArgs e)
     {
         actFilter = e.Value?.ToString() ?? string.Empty;
-        selectedScript = null;
+        expandedScriptId = null;
     }
-}
 
+    private async Task SaveScript(Script script)
+    {
+        isSaving = true;
+        try
+        {
+            await using PageantDb db = await DbFactory.CreateDbContextAsync();
+            db.Scripts.Update(script);
+            await db.SaveChangesAsync();
+            
+            // Re-order and re-number everything in this act to ensure consistency
+            await RenumberActAsync(db, script.Act);
+            
+            saveSuccessId = script.Id;
+            await LoadData();
+        }
+        catch (Exception) { }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task AddNewScriptAtEnd()
+    {
+        isSaving = true;
+        try
+        {
+            await using PageantDb db = await DbFactory.CreateDbContextAsync();
+            string lastAct = await db.Scripts.AnyAsync() 
+                ? (await db.Scripts.OrderByDescending(s => s.Act).FirstAsync()).Act 
+                : "Act 1";
+            
+            List<Script> actScripts = await db.Scripts.Where(s => s.Act == lastAct).ToListAsync();
+            string nextScene = "1";
+            if (actScripts.Any())
+            {
+                List<Script> sorted = actScripts.OrderBy(s => s.Scene, new NaturalStringComparer()).ToList();
+                nextScene = IncrementScene(sorted.Last().Scene);
+            }
+
+            Script newScript = new Script 
+            { 
+                Act = lastAct, 
+                Scene = nextScene, 
+                Text = "",
+                SwitchToScene = "",
+                Camera1Action = "",
+                Camera2Action = "",
+                Camera3Action = "",
+                Camera4Action = ""
+            };
+            
+            db.Scripts.Add(newScript);
+            await db.SaveChangesAsync();
+            await LoadData();
+            expandedScriptId = newScript.Id;
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task InsertScriptAfter(Script anchor)
+    {
+        isSaving = true;
+        try
+        {
+            await using PageantDb db = await DbFactory.CreateDbContextAsync();
+            
+            // Get all scripts in this act sorted naturally
+            List<Script> actScripts = await db.Scripts
+                .Where(s => s.Act == anchor.Act)
+                .ToListAsync();
+            List<Script> sorted = actScripts.OrderBy(s => s.Scene, new NaturalStringComparer()).ToList();
+            
+            int anchorIdx = sorted.FindIndex(s => s.Id == anchor.Id);
+            string nextScene = IncrementScene(anchor.Scene);
+
+            Script newScript = new Script 
+            { 
+                Act = anchor.Act, 
+                Scene = nextScene,
+                Text = "",
+                SwitchToScene = "",
+                Camera1Action = "",
+                Camera2Action = "",
+                Camera3Action = "",
+                Camera4Action = ""
+            };
+            
+            db.Scripts.Add(newScript);
+            await db.SaveChangesAsync(); // Get ID
+
+            // Now re-number everything after the insertion point
+            await RenumberActAsync(db, anchor.Act);
+            
+            await LoadData();
+            expandedScriptId = newScript.Id;
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task DeleteScript(Script script)
+    {
+        isSaving = true;
+        try
+        {
+            await using PageantDb db = await DbFactory.CreateDbContextAsync();
+            db.Scripts.Remove(script);
+            await db.SaveChangesAsync();
+            
+            // Re-number remaining scenes in this act
+            await RenumberActAsync(db, script.Act);
+            
+            await LoadData();
+            expandedScriptId = null;
+        }
+        finally { isSaving = false; }
+    }
+
+    private async Task RenumberActAsync(PageantDb db, string act)
+    {
+        List<Script> actScripts = await db.Scripts.Where(s => s.Act == act).ToListAsync();
+        List<Script> sorted = actScripts.OrderBy(s => s.Scene, new NaturalStringComparer()).ToList();
+        
+        if (!sorted.Any()) return;
+
+        // Determine format from the first entry (e.g., "1.01" or "1")
+        string first = sorted[0].Scene;
+        bool hasDot = first.Contains('.');
+        string prefix = hasDot ? first.Substring(0, first.IndexOf('.') + 1) : "";
+        int startNum = 1;
+        
+        // If it's 1.01, we want to extract the sequence part
+        if (hasDot)
+        {
+            string suffix = first.Substring(first.IndexOf('.') + 1);
+            // We'll just re-number 1..N using the same padding
+            int padding = suffix.Length;
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                sorted[i].Scene = prefix + (i + 1).ToString().PadLeft(padding, '0');
+                db.Scripts.Update(sorted[i]);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < sorted.Count; i++)
+            {
+                sorted[i].Scene = (i + 1).ToString();
+                db.Scripts.Update(sorted[i]);
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private string IncrementScene(string scene)
+    {
+        if (scene.Contains('.'))
+        {
+            int dotIdx = scene.IndexOf('.');
+            string prefix = scene.Substring(0, dotIdx + 1);
+            string suffix = scene.Substring(dotIdx + 1);
+            if (int.TryParse(suffix, out int val))
+            {
+                return prefix + (val + 1).ToString().PadLeft(suffix.Length, '0');
+            }
+        }
+        else if (int.TryParse(scene, out int val))
+        {
+            return (val + 1).ToString();
+        }
+        return scene + ".1";
+    }
+
+    // Helper for natural sorting (1.2 before 1.10)
+    public class NaturalStringComparer : IComparer<string>
+    {
+        public int Compare(string? x, string? y)
+        {
+            if (x == y) return 0;
+            if (x == null) return -1;
+            if (y == null) return 1;
+
+            string[] xParts = x.Split('.');
+            string[] yParts = y.Split('.');
+
+            for (int i = 0; i < Math.Min(xParts.Length, yParts.Length); i++)
+            {
+                if (int.TryParse(xParts[i], out int xInt) && int.TryParse(yParts[i], out int yInt))
+                {
+                    if (xInt != yInt) return xInt.CompareTo(yInt);
+                }
+                else
+                {
+                    int partCmp = string.Compare(xParts[i], yParts[i], StringComparison.OrdinalIgnoreCase);
+                    if (partCmp != 0) return partCmp;
+                }
+            }
+            return xParts.Length.CompareTo(yParts.Length);
+        }
+    }
+
+    // Camera field helpers
+    private string GetCamAction(Script s, int i) => i switch { 1 => s.Camera1Action, 2 => s.Camera2Action, 3 => s.Camera3Action, 4 => s.Camera4Action, _ => "" };
+    private void SetCamAction(Script s, int i, string v) { if (i==1) s.Camera1Action=v; else if (i==2) s.Camera2Action=v; else if (i==3) s.Camera3Action=v; else if (i==4) s.Camera4Action=v; }
+    private string GetCamPos(Script s, int i) => i switch { 1 => s.Camera1Position??"", 2 => s.Camera2Position??"", 3 => s.Camera3Position??"", 4 => s.Camera4Position??"", _ => "" };
+    private void SetCamPos(Script s, int i, string v) { if (i==1) s.Camera1Position=v; else if (i==2) s.Camera2Position=v; else if (i==3) s.Camera3Position=v; else if (i==4) s.Camera4Position=v; }
+}

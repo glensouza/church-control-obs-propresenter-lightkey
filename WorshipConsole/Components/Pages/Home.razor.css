@@ -5,3 +5,28 @@
 .feature-icon-img {
     height: 88px;
 }
+
+.hero {
+    background: radial-gradient(circle at center, var(--navy-light) 0%, var(--navy-bg) 70%);
+}
+
+.mockup-placeholder {
+    background-color: var(--navy-light);
+    border: 2px solid var(--tech-teal);
+    height: 400px;
+    max-width: 800px;
+    box-shadow: 0 0 40px rgba(46, 156, 202, 0.2) !important;
+}
+
+.feature-card {
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--tech-teal) !important;
+}
+
+.cta-section {
+    background: linear-gradient(to right, var(--navy-bg), var(--navy-light), var(--navy-bg));
+}
