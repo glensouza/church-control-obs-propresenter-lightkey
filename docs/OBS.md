@@ -31,9 +31,9 @@ The OBS page in Worship Console gives you full remote control of OBS Studio from
 
 Open the **Administration** page (`/admin`) in Worship Console and fill in your OBS machine's details:
 
-1.  Navigate to the **General Settings** tab.
+1.  Navigate to the **OBS Settings** tab.
 2.  Enter the **Host** (IP address) and **WebSocket Port** (default: `4455`).
-3.  Click **Save All General Settings**.
+3.  Click **Save OBS Settings**.
 
 > **Note:** For security, the **OBS Password** must still be set in `WorshipConsole/appsettings.json`.
 
@@ -43,16 +43,11 @@ Open the **Administration** page (`/admin`) in Worship Console and fill in your 
 }
 ```
 
-}
-```
-
 | Field | Description | Default |
 |---|---|---|
 | `Host` | Static IP address of the OBS machine | `127.0.0.1` |
 | `Port` | OBS WebSocket server port | `4455` |
 | `Password` | OBS WebSocket server password (leave empty if none) | *(empty)* |
-
-After saving, restart the Worship Console application.
 
 ---
 
@@ -75,7 +70,7 @@ The top-right of the OBS page shows the current connection status:
 
 If an error occurs, an error banner will appear with a description. Common causes:
 - OBS is not running
-- The IP address or port in `appsettings.json` is incorrect
+- The IP address or port in the **Administration** page is incorrect
 - The OBS WebSocket server is not enabled
 - The password does not match
 
@@ -145,7 +140,7 @@ The **Scene Collection** dropdown lets you switch between different sets of scen
 
 ### "Unable to connect to OBS at …"
 - Verify OBS is open and running.
-- Verify the IP address and port in `appsettings.json` match the OBS machine.
+- Verify the IP address and port in the **Administration** page match the OBS machine.
 - Check that the OBS WebSocket server is enabled (`Tools → obs-websocket Settings`).
 - Ensure no firewall is blocking port 4455 on the OBS machine.
 

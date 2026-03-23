@@ -29,7 +29,7 @@ A unified AV control panel for worship teams, combining OBS, ProPresenter, and L
 
 ## OBS Page
 
-The OBS control page connects directly to OBS Studio via the built-in WebSocket server (OBS-WebSocket v5). The connection target is configured server-side in `appsettings.json` — no URL entry is required by the operator.
+The OBS control page connects directly to OBS Studio via the built-in WebSocket server (OBS-WebSocket v5). The connection target is configured in the **Administration** page — no URL entry is required by the operator.
 
 ### Attribution
 
@@ -45,8 +45,9 @@ The OBS control features are inspired by **[obs-web](https://github.com/Niek/obs
 
 ## Getting Started
 
-1. Clone the repository
-2. Open the **Administration** page (`/admin`) in Worship Console and enter the OBS machine's IP address.
-3. Ensure the `OBS:Password` is set in `WorshipConsole/appsettings.json`.
-3. Run the application: `dotnet run --project WorshipConsole`
-4. Open the browser and navigate to `/obs`
+1. Clone the repository.
+2. Ensure the `OBS:Password` (if any) is set in `WorshipConsole/appsettings.json`.
+3. Run the application: `dotnet run --project WorshipConsole`.
+4. Open the browser and navigate to the **Administration** page (`/admin`).
+5. Enter the OBS machine's IP address and port in the **OBS Settings** tab.
+6. Navigate to `/obs` to start controlling.

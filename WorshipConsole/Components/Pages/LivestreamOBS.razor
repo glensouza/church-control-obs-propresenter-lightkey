@@ -1,6 +1,7 @@
 @page "/obs"
 @rendermode InteractiveServer
 @inject ObsWebSocketService ObsService
+@inject SettingsService SettingsService
 @inject IConfiguration Configuration
 @implements IAsyncDisposable
 
@@ -235,11 +236,11 @@
                     @onclick="ToggleRecordAsync">
                 @if (ObsService.Recording)
                 {
-                    <i class="fa-solid fa-stop me-1"></i><text>Stop Recording</text>
+                    <i class="fa-solid fa-stop me-1"></i><text>Stop Record</text>
                 }
                 else
                 {
-                    <i class="fa-solid fa-circle me-1"></i><text>Start Recording</text>
+                    <i class="fa-solid fa-circle me-1"></i><text>Start Record</text>
                 }
             </button>
 
@@ -281,10 +282,10 @@
     private string obsHost = "127.0.0.1";
     private int obsPort = 4455;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        obsHost = Configuration["OBS:Host"] ?? "127.0.0.1";
-        obsPort = int.TryParse(Configuration["OBS:Port"], out int p) ? p : 4455;
+        obsHost = await SettingsService.GetSettingAsync("OBS", "Host", obsHost);
+        obsPort = await SettingsService.GetSettingIntAsync("OBS", "Port", obsPort);
         ObsService.StateChanged += OnObsStateChanged;
     }
 
@@ -360,4 +361,3 @@
         await ObsService.DisposeAsync();
     }
 }
-
