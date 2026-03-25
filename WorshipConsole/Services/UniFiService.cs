@@ -139,18 +139,20 @@ public class UniFiService
         }
 
         HttpResponseMessage response = await this.httpClient.SendAsync(requestFactory());
-        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
         {
-            response.Dispose();
-            this.authCookie = null;
-            this.csrfToken = null;
-            if (!await this.AuthenticateAsync())
-            {
-                return null;
-            }
-            response = await this.httpClient.SendAsync(requestFactory());
+            return response;
         }
 
+        response.Dispose();
+        this.authCookie = null;
+        this.csrfToken = null;
+        if (!await this.AuthenticateAsync())
+        {
+            return null;
+        }
+
+        response = await this.httpClient.SendAsync(requestFactory());
         return response;
     }
 

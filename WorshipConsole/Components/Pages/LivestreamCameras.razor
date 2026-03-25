@@ -181,13 +181,13 @@
                                     <div class="col">
                                         <p class="text-gray small mb-2">Presets (Numpad Layout)</p>
                                         <div class="preset-grid">
-                                            @foreach (int presetIndex in (new[] { 6, 7, 8, 3, 4, 5, 0, 1, 2 }))
+                                            @foreach (int presetIndex in (new[] { 7, 8, 9, 4, 5, 6, 1, 2, 3 }))
                                             {
                                                 <div class="preset-cell">
                                                     <button class="btn btn-outline-teal preset-btn"
-                                                            title="Recall Preset @(presetIndex + 1)"
+                                                            title="Recall Preset @(presetIndex)"
                                                             @onclick="() => RecallPresetAsync(cam, presetIndex)">
-                                                        @(presetIndex + 1)
+                                                        @(presetIndex)
                                                     </button>
                                                     @*
                                                     <button class="btn btn-outline-secondary preset-save-btn"
