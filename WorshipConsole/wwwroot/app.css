@@ -141,3 +141,28 @@ h1:focus {
 .border-teal {
     border-color: var(--tech-teal) !important;
 }
+
+/* --- Print Utilities --- */
+.print-only {
+    display: none;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+
+    /* Hide standard layout elements globally during print */
+    header, footer, .sidebar, nav, .navbar, .reconnect-modal {
+        display: none !important;
+    }
+
+    body {
+        background-color: white !important;
+        color: black !important;
+    }
+}

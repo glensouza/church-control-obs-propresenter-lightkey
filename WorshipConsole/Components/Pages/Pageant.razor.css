@@ -25,3 +25,41 @@
         transform: translateY(0);
     }
 }
+
+@media print {
+    body {
+        font-size: 9pt;
+    }
+
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .print-table th, .print-table td {
+        border: 1px solid #dee2e6 !important;
+        padding: 4px 6px !important;
+        color: black !important;
+        vertical-align: top;
+    }
+
+    .print-table th {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .preserve-whitespace {
+        white-space: pre-wrap !important;
+    }
+
+    .extra-small {
+        font-size: 8pt;
+    }
+}

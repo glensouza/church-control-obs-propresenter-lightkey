@@ -275,7 +275,10 @@
         {
             await JS.InvokeVoidAsync("scrollToActive", ".script-nav-body", ".active-scene");
         }
-        catch { }
+        catch
+        {
+            // ignored
+        }
     }
 
     private async Task ExecuteCurrentScript()
@@ -298,11 +301,9 @@
             {
                 string action = GetCamAction(currentScript, i);
                 int? preset = ParsePreset(action);
-                if (preset.HasValue)
-                {
-                    CameraInfo cam = cameras[i - 1];
-                    camTasks.Add(ViscaService.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, preset.Value));
-                }
+                if (!preset.HasValue) continue;
+                CameraInfo cam = cameras[i - 1];
+                camTasks.Add(ViscaService.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, preset.Value));
             }
 
             if (camTasks.Any())
@@ -327,12 +328,12 @@
         }
     }
 
-    private int? ParsePreset(string action)
+    private static int? ParsePreset(string action)
     {
         if (string.IsNullOrWhiteSpace(action)) return null;
         
         // Try to find the first number in the string
-        string digits = new string(action.Where(char.IsDigit).ToArray());
+        string digits = new(action.Where(char.IsDigit).ToArray());
         if (int.TryParse(digits, out int result) && result > 0) return result;
         
         return null;

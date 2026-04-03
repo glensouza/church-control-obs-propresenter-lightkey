@@ -2,17 +2,21 @@
 @implements IDisposable
 @inject IDbContextFactory<PageantDb> DbFactory
 @inject ObsWebSocketService ObsService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Pageant | Worship Console</PageTitle>
 
-<div class="container py-4">
+<div class="container py-4 no-print">
     <div class="d-flex align-items-center mb-4">
         <i class="fa-solid fa-star text-teal me-3 fs-3"></i>
         <h1 class="fw-bold mb-0 flex-grow-1">Pageant Script</h1>
-        @if (scripts.Any())
+        @if (scripts != null && scripts.Any())
         {
-            <div class="col-auto ms-auto">
+            <div class="col-auto ms-auto d-flex align-items-center">
+                <button class="btn btn-outline-teal me-3" @onclick="PrintScript">
+                    <i class="fa-solid fa-print me-2"></i>Print Script
+                </button>
                 <span class="badge bg-teal text-dark fw-semibold px-3 py-2">
                     @FilteredScripts.Count() scenes
                 </span>
@@ -259,6 +263,53 @@
     }
 </div>
 
+<div class="print-only p-4 bg-white text-black">
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <h1 class="fw-bold mb-0">Pageant Script</h1>
+        <div class="text-end">
+            <p class="mb-0 text-muted">Printed: @DateTime.Now.ToString("g")</p>
+        </div>
+    </div>
+
+    <table class="table table-bordered table-sm print-table">
+        <thead>
+            <tr class="bg-light">
+                <th style="width: 80px;">Scene</th>
+                <th>Script / Action</th>
+                <th style="width: 150px;">OBS Scene</th>
+                <th style="width: 140px;">Camera Cues</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (scripts != null)
+            {
+                @foreach (var script in scripts.OrderBy(s => s.Act).ThenBy(s => s.Scene, new NaturalStringComparer()))
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@script.Act</div>
+                            <div class="fs-6">@script.Scene</div>
+                            <div class="text-muted extra-small">@script.SceneLength sec</div>
+                        </td>
+                        <td class="text-wrap preserve-whitespace small">@script.Text</td>
+                        <td class="small">@script.SwitchToScene</td>
+                        <td>
+                            @for (int i = 1; i <= 4; i++)
+                            {
+                                string action = GetCamAction(script, i);
+                                if (!string.IsNullOrEmpty(action))
+                                {
+                                    <div class="extra-small">Cam @i: <span class="fw-bold">P-@action</span></div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
 @code {
     private List<Script>? scripts;
     private List<CameraInfo> cameras = [];
@@ -274,6 +325,11 @@
         string.IsNullOrEmpty(actFilter)
             ? scripts
             : scripts.Where(s => s.Act == actFilter).OrderBy(s => s.Act).ThenBy(s => s.Scene, new NaturalStringComparer());
+
+    private async Task PrintScript()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
 
     protected override async Task OnInitializedAsync()
     {
