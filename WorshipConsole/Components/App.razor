@@ -25,5 +25,17 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js"></script>
 <script src="@Assets["_framework/blazor.web.js"]"></script>
+<script>
+    window.scrollToActive = function (containerSelector, activeSelector) {
+        const container = document.querySelector(containerSelector);
+        const active = document.querySelector(activeSelector);
+        if (container && active) {
+            container.scrollTo({
+                top: active.offsetTop - container.offsetTop,
+                behavior: 'smooth'
+            });
+        }
+    }
+</script>
 </body>
 </html>

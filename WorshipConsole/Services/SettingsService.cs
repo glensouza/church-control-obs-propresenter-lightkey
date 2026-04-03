@@ -4,26 +4,17 @@ using WorshipConsole.Models;
 
 namespace WorshipConsole.Services;
 
-public class SettingsService
+public class SettingsService(IDbContextFactory<PageantDb> dbFactory, IConfiguration configuration)
 {
-    private readonly IDbContextFactory<PageantDb> dbFactory;
-    private readonly IConfiguration configuration;
-
-    public SettingsService(IDbContextFactory<PageantDb> dbFactory, IConfiguration configuration)
-    {
-        this.dbFactory = dbFactory;
-        this.configuration = configuration;
-    }
-
     public async Task<string> GetSettingAsync(string category, string key, string defaultValue = "")
     {
-        await using PageantDb db = await this.dbFactory.CreateDbContextAsync();
+        await using PageantDb db = await dbFactory.CreateDbContextAsync();
         Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.SettingType == category && s.SettingId == key);
         if (setting != null) return setting.Setting;
 
         // Fallback to configuration
         string configKey = string.IsNullOrEmpty(category) ? key : $"{category}:{key}";
-        return this.configuration[configKey] ?? defaultValue;
+        return configuration[configKey] ?? defaultValue;
     }
 
     public async Task<int> GetSettingIntAsync(string category, string key, int defaultValue = 0)
@@ -34,7 +25,7 @@ public class SettingsService
 
     public async Task SaveSettingAsync(string category, string key, string value)
     {
-        await using PageantDb db = await this.dbFactory.CreateDbContextAsync();
+        await using PageantDb db = await dbFactory.CreateDbContextAsync();
         Settings? setting = await db.Settings.FirstOrDefaultAsync(s => s.SettingType == category && s.SettingId == key);
 
         if (setting == null)
@@ -53,7 +44,7 @@ public class SettingsService
 
     public async Task InitializeFromConfigAsync()
     {
-        await using PageantDb db = await this.dbFactory.CreateDbContextAsync();
+        await using PageantDb db = await dbFactory.CreateDbContextAsync();
         
         // OBS
         await this.EnsureSetting(db, "OBS", "Host", "127.0.0.1");
@@ -86,7 +77,7 @@ public class SettingsService
         if (!exists)
         {
             string configKey = $"{category}:{key}";
-            string value = this.configuration[configKey] ?? defaultValue;
+            string value = configuration[configKey] ?? defaultValue;
             db.Settings.Add(new Settings { SettingType = category, SettingId = key, Setting = value });
         }
     }

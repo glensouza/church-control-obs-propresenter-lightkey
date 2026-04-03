@@ -26,3 +26,59 @@
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
 }
+
+.btn-take {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+    transition: all 0.2s ease;
+}
+
+.btn-take:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ff5e4d 0%, #d64535 100%);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+    transform: translateY(-2px);
+    color: white;
+}
+
+.btn-take:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn-take:disabled {
+    background: #444;
+    opacity: 0.6;
+    box-shadow: none;
+}
+
+.control-bar {
+    z-index: 1020;
+    top: -1.5rem; /* Offset the container padding slightly for a cleaner look */
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    background: var(--navy-dark); /* Ensure background is solid when sticking */
+}
+
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.countdown-active {
+    animation: pulse-teal 1s infinite;
+}
+
+@keyframes pulse-teal {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}

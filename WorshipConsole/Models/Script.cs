@@ -24,22 +24,14 @@ public class Script
     [Required]
     public string Camera1Action { get; set; } = string.Empty;
 
-    public string? Camera1Position { get; set; }
-
     [Required]
     public string Camera2Action { get; set; } = string.Empty;
-
-    public string? Camera2Position { get; set; }
 
     [Required]
     public string Camera3Action { get; set; } = string.Empty;
 
-    public string? Camera3Position { get; set; }
-
     [Required]
     public string Camera4Action { get; set; } = string.Empty;
-
-    public string? Camera4Position { get; set; }
 
     public string? StageLightScene { get; set; }
     public string? SpotlightLeft { get; set; }

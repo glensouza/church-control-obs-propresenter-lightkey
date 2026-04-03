@@ -1,7 +1,9 @@
 @page "/admin"
+@implements IDisposable
 @rendermode InteractiveServer
 @inject PageantDb Db
 @inject SettingsService Settings
+@inject ObsWebSocketService ObsService
 @inject NavigationManager Navigation
 
 <PageTitle>Administration | Worship Console</PageTitle>
@@ -37,6 +39,16 @@
         <li class="nav-item" role="presentation">
             <button class="nav-link @(activeTab == "pco" ? "active" : "")" @onclick='() => SetTab("pco")'>
                 <i class="fa-solid fa-users me-1"></i> Planning Center
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "livestream" ? "active" : "")" @onclick='() => SetTab("livestream")'>
+                <i class="fa-solid fa-tower-broadcast me-1"></i> Livestream
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link @(activeTab == "pageant" ? "active" : "")" @onclick='() => SetTab("pageant")'>
+                <i class="fa-solid fa-star me-1"></i> Pageant Config
             </button>
         </li>
     </ul>
@@ -339,12 +351,104 @@
                 </div>
             </div>
         }
+        else if (activeTab == "pageant")
+        {
+            <div class="row g-4">
+                <!-- OBS Scene Presets -->
+                <div class="col-lg-8 mx-auto">
+                    <div class="card bg-dark border-secondary">
+                        <div class="card-header border-secondary navy-light-bg d-flex align-items-center justify-content-between">
+                            <h5 class="mb-0 text-white"><i class="fa-solid fa-film me-2 text-teal"></i> Authorized Pageant OBS Scenes</h5>
+                            <button class="btn btn-teal-glow btn-sm" @onclick="AddNewObsPreset">
+                                <i class="fa-solid fa-plus me-1"></i> Add Scene mapping
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-dark table-hover border-secondary align-middle">
+                                    <thead>
+                                        <tr class="text-teal">
+                                            <th>Friendly Name (Dropdown Label)</th>
+                                            <th>OBS Scene Name</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (PageantObsScene scene in pageantScenes)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @if (editingObsScene?.Id == scene.Id)
+                                                    {
+                                                        <input class="form-control bg-dark text-white border-secondary" @bind="editingObsScene.Name" placeholder="e.g. Background A" />
+                                                    }
+                                                    else
+                                                    {
+                                                        @scene.Name
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (editingObsScene?.Id == scene.Id)
+                                                    {
+                                                        @if (ObsService.IsConnected)
+                                                        {
+                                                            <select class="form-select bg-dark text-white border-secondary" @bind="editingObsScene.ObsSceneName">
+                                                                <option value="">-- Select OBS Scene --</option>
+                                                                @foreach (ObsScene obsScene in ObsService.Scenes)
+                                                                {
+                                                                    <option value="@obsScene.SceneName">@obsScene.SceneName</option>
+                                                                }
+                                                            </select>
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="input-group">
+                                                                <input class="form-control bg-dark text-white border-secondary" @bind="editingObsScene.ObsSceneName" placeholder="Type name or connect OBS" />
+                                                                <span class="input-group-text bg-dark border-secondary text-danger" title="OBS Disconnected"><i class="fa-solid fa-plug-circle-xmark"></i></span>
+                                                            </div>
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        @scene.ObsSceneName
+                                                    }
+                                                </td>
+                                                <td class="text-end">
+                                                    @if (editingObsScene?.Id == scene.Id)
+                                                    {
+                                                        <button class="btn btn-sm btn-success me-1" @onclick="SaveObsSceneEdit">
+                                                            <i class="fa-solid fa-check"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => editingObsScene = null">
+                                                            <i class="fa-solid fa-xmark"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <button class="btn btn-sm btn-outline-teal me-1" @onclick="() => editingObsScene = new PageantObsScene { Id = scene.Id, Name = scene.Name, ObsSceneName = scene.ObsSceneName }">
+                                                            <i class="fa-solid fa-pen"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteObsScene(scene)">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                        </button>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 </div>
 
 @code {
-    private string activeTab = "obs";
-    private bool isSaving = false;
+    private string activeTab = "general";
+    private bool isSaving;
     private string? saveMessage;
     private string? saveStatus;
 
@@ -372,14 +476,35 @@
     private string pcoLivePos = "";
     private string pcoWorshipPos = "";
 
+    // Livestream Settings
+    private string ytStreamId = "";
+    private string fbPageId = "";
+    private TimeOnly liveDefaultTime = new(11, 0);
+
     // Camera Admin
     private List<CameraInfo>? cameras;
     private CameraInfo? editingCamera;
 
+    // Pageant Config
+    private List<PageantObsScene> pageantScenes = [];
+    private PageantObsScene? editingObsScene;
+
     protected override async Task OnInitializedAsync()
     {
+        ObsService.StateChanged += StateHasChanged;
+        if (!ObsService.IsConnected && !ObsService.IsConnecting)
+        {
+            _ = ObsService.ConnectAsync();
+        }
+
         await LoadGeneralSettings();
         await LoadCameras();
+        await LoadPageantPresets();
+    }
+
+    public void Dispose()
+    {
+        ObsService.StateChanged -= StateHasChanged;
     }
 
     private void SetTab(string tab) 
@@ -409,6 +534,11 @@
         pcoProPos = await Settings.GetSettingAsync("Pco", "ProPresenterPosition", "ProPresenter");
         pcoLivePos = await Settings.GetSettingAsync("Pco", "LivestreamPosition", "Livestream");
         pcoWorshipPos = await Settings.GetSettingAsync("Pco", "WorshipCoordinatorPosition", "Worship Coordinator");
+
+        ytStreamId = await Settings.GetSettingAsync("Livestream", "YouTubeStreamId", "");
+        fbPageId = await Settings.GetSettingAsync("Livestream", "FacebookPageId", "");
+        string timeStr = await Settings.GetSettingAsync("Livestream", "DefaultTime", "11:00");
+        if (TimeOnly.TryParse(timeStr, out TimeOnly time)) liveDefaultTime = time;
     }
 
     private async Task SaveGeneralSettings()
@@ -470,6 +600,24 @@
             await Settings.SaveSettingAsync("Pco", "LivestreamPosition", pcoLivePos);
             await Settings.SaveSettingAsync("Pco", "WorshipCoordinatorPosition", pcoWorshipPos);
             saveMessage = "PCO settings saved!";
+        }
+        catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
+        finally { isSaving = false; }
+    }
+
+    private async Task SaveLivestreamSettings()
+    {
+        isSaving = true;
+        saveStatus = "livestream";
+        try
+        {
+            ytStreamId = ytStreamId.Trim();
+            fbPageId = fbPageId.Trim();
+
+            await Settings.SaveSettingAsync("Livestream", "YouTubeStreamId", ytStreamId);
+            await Settings.SaveSettingAsync("Livestream", "FacebookPageId", fbPageId);
+            await Settings.SaveSettingAsync("Livestream", "DefaultTime", liveDefaultTime.ToString("HH:mm"));
+            saveMessage = "Livestream settings saved!";
         }
         catch (Exception ex) { saveMessage = $"Error: {ex.Message}"; }
         finally { isSaving = false; }
@@ -544,5 +692,48 @@
         Db.Cameras.Remove(cam);
         await Db.SaveChangesAsync();
         await LoadCameras();
+    }
+
+    // --- Pageant Config Logic ---
+    private async Task LoadPageantPresets()
+    {
+        pageantScenes = await Db.PageantObsScenes.OrderBy(s => s.Name).ToListAsync();
+    }
+
+    private void AddNewObsPreset()
+    {
+        editingObsScene = new PageantObsScene { Name = "New Scene", ObsSceneName = "" };
+        pageantScenes.Add(editingObsScene);
+    }
+
+    private async Task SaveObsSceneEdit()
+    {
+        if (editingObsScene == null) return;
+        
+        if (editingObsScene.Id == 0)
+        {
+            Db.PageantObsScenes.Add(editingObsScene);
+        }
+        else
+        {
+            PageantObsScene? existing = await Db.PageantObsScenes.FindAsync(editingObsScene.Id);
+            if (existing != null)
+            {
+                existing.Name = editingObsScene.Name;
+                existing.ObsSceneName = editingObsScene.ObsSceneName;
+                Db.PageantObsScenes.Update(existing);
+            }
+        }
+        
+        await Db.SaveChangesAsync();
+        editingObsScene = null;
+        await LoadPageantPresets();
+    }
+
+    private async Task DeleteObsScene(PageantObsScene scene)
+    {
+        Db.PageantObsScenes.Remove(scene);
+        await Db.SaveChangesAsync();
+        await LoadPageantPresets();
     }
 }

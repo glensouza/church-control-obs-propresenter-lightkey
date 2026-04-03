@@ -1,5 +1,7 @@
 @page "/pageant"
+@implements IDisposable
 @inject IDbContextFactory<PageantDb> DbFactory
+@inject ObsWebSocketService ObsService
 @rendermode InteractiveServer
 
 <PageTitle>Pageant | Worship Console</PageTitle>
@@ -118,7 +120,31 @@
                                             </div>
                                             <div class="col-12">
                                                 <label class="form-label text-graySmall">OBS Scene Trigger</label>
-                                                <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" @bind="script.SwitchToScene" />
+                                                <select class="form-select form-select-sm bg-dark text-white border-secondary" @bind="script.SwitchToScene">
+                                                    <option value="">None</option>
+                                                    @if (pageantScenes.Any())
+                                                    {
+                                                        <optgroup label="Authorized Mappings">
+                                                            @foreach (PageantObsScene pScene in pageantScenes)
+                                                            {
+                                                                <option value="@pScene.ObsSceneName">@pScene.Name (@pScene.ObsSceneName)</option>
+                                                            }
+                                                        </optgroup>
+                                                    }
+                                                    @if (ObsService.IsConnected)
+                                                    {
+                                                        <optgroup label="All OBS Scenes">
+                                                            @foreach (ObsScene scene in ObsService.Scenes)
+                                                            {
+                                                                <option value="@scene.SceneName">@scene.SceneName</option>
+                                                            }
+                                                        </optgroup>
+                                                    }
+                                                </select>
+                                                @if (!ObsService.IsConnected && !pageantScenes.Any())
+                                                {
+                                                    <div class="form-text text-danger small"><i class="fa-solid fa-circle-exclamation me-1"></i>OBS Disconnected and no mappings found.</div>
+                                                }
                                             </div>
                                         </div>
                                     </div>
@@ -141,17 +167,34 @@
                                             {
                                                 int camIndex = i;
                                                 string camName = i <= cameras.Count ? cameras[i - 1].Name : $"Camera {i}";
+                                                string currentAction = GetCamAction(script, camIndex);
+                                                int? parsedPreset = ParsePresetNumber(currentAction);
+                                                bool isSet = parsedPreset.HasValue;
+
                                                 <div class="col-md-3">
-                                                    <div class="p-2 border border-secondary rounded bg-dark bg-opacity-50">
+                                                    <div class="p-2 border border-secondary rounded bg-dark bg-opacity-50 h-100">
                                                         <label class="form-label text-teal small fw-bold mb-2">@camName</label>
-                                                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary mb-2" 
-                                                               placeholder="Action" 
-                                                               @bind:get="GetCamAction(script, camIndex)" 
-                                                               @bind:set="(v) => SetCamAction(script, camIndex, v)" />
-                                                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" 
-                                                               placeholder="Position/Notes" 
-                                                               @bind:get="GetCamPos(script, camIndex)" 
-                                                               @bind:set="(v) => SetCamPos(script, camIndex, v)" />
+                                                        
+                                                        <select class="form-select form-select-sm bg-dark text-white border-secondary mb-2" 
+                                                                @onchange="(e) => HandleCamTypeChange(script, camIndex, e.Value?.ToString())">
+                                                            <option value="none" selected="@(!isSet)">None</option>
+                                                            <option value="set" selected="@isSet">Set</option>
+                                                        </select>
+
+                                                        @if (isSet)
+                                                        {
+                                                            <div class="input-group input-group-sm">
+                                                                <span class="input-group-text bg-secondary border-secondary text-white">Preset</span>
+                                                                <input type="number" min="1" max="99" class="form-control bg-dark text-white border-secondary" 
+                                                                       @bind:get="GetPresetNumber(script, camIndex)" 
+                                                                       @bind:set="(v) => SetPresetNumber(script, camIndex, v)" />
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary" 
+                                                                   value="—" disabled />
+                                                        }
                                                     </div>
                                                 </div>
                                             }
@@ -218,10 +261,11 @@
 
 @code {
     private List<Script>? scripts;
-    private List<CameraInfo> cameras = new();
+    private List<CameraInfo> cameras = [];
+    private List<PageantObsScene> pageantScenes = [];
     private int? expandedScriptId;
     private string actFilter = string.Empty;
-    private bool isSaving = false;
+    private bool isSaving;
     private int? saveSuccessId;
 
     private IEnumerable<string> Acts => scripts?.Select(s => s.Act).Distinct().Order() ?? Enumerable.Empty<string>();
@@ -229,11 +273,21 @@
         scripts == null ? [] :
         string.IsNullOrEmpty(actFilter)
             ? scripts
-            : scripts.OrderBy(s => s.Act).ThenBy(s => s.Scene);
+            : scripts.Where(s => s.Act == actFilter).OrderBy(s => s.Act).ThenBy(s => s.Scene, new NaturalStringComparer());
 
     protected override async Task OnInitializedAsync()
     {
+        ObsService.StateChanged += StateHasChanged;
+        if (!ObsService.IsConnected && !ObsService.IsConnecting)
+        {
+            _ = ObsService.ConnectAsync();
+        }
         await LoadData();
+    }
+
+    public void Dispose()
+    {
+        ObsService.StateChanged -= StateHasChanged;
     }
 
     private async Task LoadData()
@@ -246,6 +300,7 @@
             .ThenBy(s => s.Scene, new NaturalStringComparer())
             .ToList();
         cameras = await db.Cameras.OrderBy(c => c.Id).ToListAsync();
+        pageantScenes = await db.PageantObsScenes.OrderBy(s => s.Name).ToListAsync();
     }
 
     private void ToggleExpand(int scriptId)
@@ -266,6 +321,7 @@
         try
         {
             await using PageantDb db = await DbFactory.CreateDbContextAsync();
+            NormalizeCameraActions(script);
             db.Scripts.Update(script);
             await db.SaveChangesAsync();
             
@@ -300,7 +356,7 @@
                 nextScene = IncrementScene(sorted.Last().Scene);
             }
 
-            Script newScript = new Script 
+            Script newScript = new()
             { 
                 Act = lastAct, 
                 Scene = nextScene, 
@@ -336,7 +392,7 @@
             int anchorIdx = sorted.FindIndex(s => s.Id == anchor.Id);
             string nextScene = IncrementScene(anchor.Scene);
 
-            Script newScript = new Script 
+            Script newScript = new()
             { 
                 Act = anchor.Act, 
                 Scene = nextScene,
@@ -462,9 +518,51 @@
         }
     }
 
-    // Camera field helpers
     private string GetCamAction(Script s, int i) => i switch { 1 => s.Camera1Action, 2 => s.Camera2Action, 3 => s.Camera3Action, 4 => s.Camera4Action, _ => "" };
     private void SetCamAction(Script s, int i, string v) { if (i==1) s.Camera1Action=v; else if (i==2) s.Camera2Action=v; else if (i==3) s.Camera3Action=v; else if (i==4) s.Camera4Action=v; }
-    private string GetCamPos(Script s, int i) => i switch { 1 => s.Camera1Position??"", 2 => s.Camera2Position??"", 3 => s.Camera3Position??"", 4 => s.Camera4Position??"", _ => "" };
-    private void SetCamPos(Script s, int i, string v) { if (i==1) s.Camera1Position=v; else if (i==2) s.Camera2Position=v; else if (i==3) s.Camera3Position=v; else if (i==4) s.Camera4Position=v; }
-}
+
+    private void HandleCamTypeChange(Script script, int camIndex, string? value)
+    {
+        if (value == "none")
+        {
+            SetCamAction(script, camIndex, "");
+        }
+        else
+        {
+            SetCamAction(script, camIndex, "1");
+        }
+    }
+
+    private int GetPresetNumber(Script s, int i)
+    {
+        string action = GetCamAction(s, i);
+        int? preset = ParsePresetNumber(action);
+        if (preset.HasValue) return preset.Value;
+        return 1;
+    }
+
+    private void SetPresetNumber(Script s, int i, int val)
+    {
+        SetCamAction(s, i, val.ToString());
+    }
+
+    private int? ParsePresetNumber(string? action)
+    {
+        if (string.IsNullOrWhiteSpace(action)) return null;
+
+        string digits = new(action.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out int preset) && preset > 0) return preset;
+        return null;
+    }
+
+    private void NormalizeCameraActions(Script script)
+    {
+        for (int i = 1; i <= 4; i++)
+        {
+            string currentAction = GetCamAction(script, i);
+            int? preset = ParsePresetNumber(currentAction);
+            SetCamAction(script, i, preset?.ToString() ?? string.Empty);
+        }
+    }
+    }
+

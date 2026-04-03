@@ -1,6 +1,7 @@
 @page "/livestream"
 
 @inject SettingsService SettingsService
+@inject LivestreamService LivestreamService
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Livestream | Worship Console</PageTitle>
@@ -31,6 +32,40 @@
                             <div class="mb-3">
                                 <label class="form-label text-teal fw-bold">YouTube Live Link (for Facebook)</label>
                                 <input type="text" class="form-control bg-dark text-white border-secondary" @bind="youtubeLiveLink" @bind:event="oninput" placeholder="https://youtube.com/live/..." />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-teal fw-bold">Event Thumbnail (1280x720)</label>
+                                <InputFile OnChange="OnThumbnailChange" class="form-control bg-dark text-white border-secondary" accept="image/jpeg,image/png" />
+                                <div class="form-text text-white">Max size 2MB. 16:9 ratio recommended.</div>
+                                @if (!string.IsNullOrEmpty(thumbnailPreviewUrl))
+                                {
+                                    <div class="mt-2 text-center border border-secondary rounded overflow-hidden">
+                                        <img src="@thumbnailPreviewUrl" class="img-fluid" style="max-height: 150px;" alt="Thumbnail preview" />
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="mt-4">
+                                <button class="btn btn-teal-glow w-100 fw-bold py-3" @onclick="ScheduleLivestreams" disabled="@isScheduling">
+                                    @if (isScheduling)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Scheduling...</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-solid fa-calendar-plus me-2"></i>
+                                        <span>Schedule for @DefaultStartTime</span>
+                                    }
+                                </button>
+                                @if (!string.IsNullOrEmpty(scheduleStatus))
+                                {
+                                    <div class="alert @(scheduleSuccess ? "alert-success" : "alert-danger") mt-3 mb-0 py-2 small border-0">
+                                        <i class="fa-solid @(scheduleSuccess ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+                                        @scheduleStatus
+                                    </div>
+                                }
                             </div>
                         </div>
 
@@ -157,6 +192,14 @@
     private string youtubeHandle = "CoronaSDAChurch";
     private string facebookHandle = "CoronaSDAChurch";
     private string? copyStatus;
+    
+    private bool isScheduling;
+    private string? scheduleStatus;
+    private bool scheduleSuccess;
+    private TimeOnly defaultTime = new(11, 0);
+
+    private byte[]? thumbnailBytes;
+    private string? thumbnailPreviewUrl;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,9 +207,86 @@
         youtubeHandle = await SettingsService.GetSettingAsync("General", "YouTubeHandle", youtubeHandle);
         facebookHandle = await SettingsService.GetSettingAsync("General", "FacebookHandle", facebookHandle);
         
+        string timeStr = await SettingsService.GetSettingAsync("Livestream", "DefaultTime", "11:00");
+        if (TimeOnly.TryParse(timeStr, out TimeOnly time)) defaultTime = time;
+
         // Default to today if Saturday, else next Saturday
         int daysUntilSaturday = ((int)DayOfWeek.Saturday - (int)DateTime.Today.DayOfWeek + 7) % 7;
         serviceDate = DateTime.Today.AddDays(daysUntilSaturday);
+    }
+
+    private string DefaultStartTime => defaultTime.ToString("h:mm tt");
+
+    private async Task OnThumbnailChange(InputFileChangeEventArgs e)
+    {
+        IBrowserFile file = e.File;
+        if (file.Size > 2 * 1024 * 1024)
+        {
+            scheduleStatus = "Thumbnail file is too large (max 2MB).";
+            scheduleSuccess = false;
+            return;
+        }
+
+        using Stream stream = file.OpenReadStream(2 * 1024 * 1024);
+        using MemoryStream memoryStream = new();
+        await stream.CopyToAsync(memoryStream);
+        thumbnailBytes = memoryStream.ToArray();
+
+        // Create preview
+        string format = file.ContentType;
+        thumbnailPreviewUrl = $"data:{format};base64,{Convert.ToBase64String(thumbnailBytes)}";
+    }
+
+    private async Task ScheduleLivestreams()
+    {
+        if (string.IsNullOrWhiteSpace(sermonTitle))
+        {
+            scheduleStatus = "Please enter a sermon title first.";
+            scheduleSuccess = false;
+            return;
+        }
+
+        isScheduling = true;
+        scheduleStatus = "Scheduling YouTube...";
+        StateHasChanged();
+
+        DateTime startTime = serviceDate.Date.Add(defaultTime.ToTimeSpan());
+
+        // YouTube
+        (bool success, string message, string? videoId) ytResult = await LivestreamService.ScheduleYouTubeAsync(GeneratedTitle, YoutubeDescription, startTime, thumbnailBytes);
+        
+        if (ytResult.success)
+        {
+            if (!string.IsNullOrEmpty(ytResult.videoId))
+            {
+                youtubeLiveLink = $"https://www.youtube.com/live/{ytResult.videoId}";
+            }
+
+            scheduleStatus = "YouTube Scheduled! Scheduling Facebook...";
+            StateHasChanged();
+
+            // Facebook
+            (bool success, string message) fbResult = await LivestreamService.ScheduleFacebookAsync(GeneratedTitle, FacebookDescription, startTime, thumbnailBytes);
+            
+            if (fbResult.success)
+            {
+                scheduleStatus = "Successfully scheduled both YouTube and Facebook!";
+                scheduleSuccess = true;
+            }
+            else
+            {
+                scheduleStatus = $"YouTube OK, but Facebook failed: {fbResult.message}";
+                scheduleSuccess = false;
+            }
+        }
+        else
+        {
+            scheduleStatus = ytResult.message;
+            scheduleSuccess = false;
+        }
+
+        isScheduling = false;
+        StateHasChanged();
     }
 
     private string FormattedDate => GetFormattedDate(serviceDate);

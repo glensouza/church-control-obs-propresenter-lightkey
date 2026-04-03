@@ -1,5 +1,9 @@
 @page "/pageant/livestream"
+@implements IDisposable
 @inject IDbContextFactory<PageantDb> DbFactory
+@inject ObsWebSocketService ObsService
+@inject ViscaService ViscaService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Pageant Livestream | Worship Console</PageTitle>
@@ -8,6 +12,12 @@
     <div class="d-flex align-items-center mb-4">
         <i class="fa-solid fa-video text-teal me-3 fs-3"></i>
         <h1 class="fw-bold mb-0">Pageant Livestream</h1>
+        <div class="ms-auto d-flex gap-3">
+            <div class="d-flex align-items-center">
+                <div class="status-dot @(ObsService.IsConnected ? "bg-success" : "bg-danger") me-2"></div>
+                <span class="text-gray small">OBS: @(ObsService.IsConnected ? "Connected" : "Disconnected")</span>
+            </div>
+        </div>
     </div>
 
     @if (scripts == null)
@@ -63,31 +73,28 @@
                 }
                 else
                 {
-                    <!-- OBS Scene Switch -->
-                    <div class="card navy-light-bg text-white border-secondary mb-4">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="fw-bold mb-0">
-                                    <span class="badge bg-teal text-dark me-2">@currentScript.Act</span>
-                                    @currentScript.Scene
-                                </h5>
-                                <span class="text-gray small">
-                                    <i class="fa-regular fa-clock me-1"></i>@currentScript.SceneLength sec
-                                </span>
-                            </div>
-                            @if (!string.IsNullOrEmpty(currentScript.SwitchToScene))
-                            {
-                                <div class="alert alert-obs mb-3 d-flex align-items-center gap-3">
-                                    <i class="fa-solid fa-film fs-4"></i>
-                                    <div>
-                                        <div class="small fw-semibold text-uppercase opacity-75">Switch OBS Scene To</div>
-                                        <div class="fs-5 fw-bold">@currentScript.SwitchToScene</div>
-                                    </div>
-                                </div>
-                            }
-                            <div class="bg-dark p-3 rounded border border-secondary">
-                                <p class="mb-0 text-gray fs-5">@currentScript.Text</p>
-                            </div>
+                    <!-- Controls Bar -->
+                    <div class="control-bar sticky-top mb-4">
+                        <div class="d-flex justify-content-between gap-3 p-3 navy-light-bg rounded border border-secondary shadow-lg">
+                            <button class="btn btn-outline-teal px-4 py-2 fw-bold" @onclick="PreviousScene" disabled="@(currentIndex <= 0)">
+                                <i class="fa-solid fa-chevron-left me-2"></i><span class="d-none d-md-inline">PREV</span>
+                            </button>
+                            
+                            <button class="btn btn-take px-5 py-3 fw-bold fs-3 flex-grow-1" @onclick="ExecuteCurrentScript" disabled="@(currentScript == null || isExecuting)">
+                                @if (isExecuting)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <span>EXECUTING...</span>
+                                }
+                                else
+                                {
+                                    <i class="fa-solid fa-bolt-lightning me-2"></i><span>TAKE</span>
+                                }
+                            </button>
+
+                            <button class="btn btn-teal-glow px-4 py-2 fw-bold fs-4" @onclick="NextScene" disabled="@(currentIndex >= scripts.Count - 1)">
+                                <span class="d-none d-md-inline">NEXT </span>SCENE<i class="fa-solid fa-chevron-right ms-2"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -98,7 +105,7 @@
                             int camIndex = i;
                             string camName = i <= cameras.Count ? cameras[i - 1].Name : $"Camera {i}";
                             string action = GetCamAction(currentScript, camIndex);
-                            string pos = GetCamPos(currentScript, camIndex);
+                            int? preset = ParsePreset(action);
                             
                             <div class="col-md-3">
                                 <div class="card navy-light-bg text-white border-secondary h-100">
@@ -107,26 +114,53 @@
                                             <i class="fa-solid fa-video text-teal me-2"></i>@camName
                                         </h6>
                                     </div>
-                                    <div class="card-body text-center d-flex flex-column justify-content-center">
-                                        <div class="fs-4 fw-bold mb-1">@(string.IsNullOrEmpty(action) ? "—" : action)</div>
-                                        @if (!string.IsNullOrEmpty(pos))
-                                        {
-                                            <div class="text-gray small mt-2">@pos</div>
-                                        }
+                                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                                        <div class="small text-graySmall mb-1">Preset</div>
+                                        <div class="fs-2 fw-bold text-teal">@(preset.HasValue ? preset.Value.ToString() : "None")</div>
                                     </div>
                                 </div>
                             </div>
                         }
                     </div>
 
-                    <!-- Next / Prev navigation -->
-                    <div class="d-flex justify-content-between gap-3 mt-4">
-                        <button class="btn btn-outline-teal px-5 py-3 fw-bold" @onclick="PreviousScene" disabled="@(currentIndex <= 0)">
-                            <i class="fa-solid fa-chevron-left me-2"></i>PREVIOUS
-                        </button>
-                        <button class="btn btn-teal-glow px-5 py-3 fw-bold fs-4" @onclick="NextScene" disabled="@(currentIndex >= scripts.Count - 1)">
-                            NEXT SCENE<i class="fa-solid fa-chevron-right ms-2"></i>
-                        </button>
+                    <!-- OBS Scene Switch & Script -->
+                    <div class="card navy-light-bg text-white border-secondary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="fw-bold mb-0">
+                                    <span class="badge bg-teal text-dark me-2">@currentScript.Act</span>
+                                    @currentScript.Scene
+                                </h5>
+                                <div class="text-end">
+                                    @if (remainingTime.HasValue)
+                                    {
+                                        <div class="countdown-active fw-bold text-teal fs-4">
+                                            <i class="fa-solid fa-stopwatch me-2"></i>@remainingTime
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-gray small">
+                                            <i class="fa-regular fa-clock me-1"></i>@currentScript.SceneLength sec
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(currentScript.SwitchToScene))
+                            {
+                                <div class="alert alert-obs mb-3 d-flex align-items-center gap-3">
+                                    <i class="fa-solid fa-film fs-4"></i>
+                                    <div>
+                                        <div class="small fw-semibold text-uppercase opacity-75">Switch OBS Scene To</div>
+                                        <div class="fs-4 fw-bold">@GetFriendlySceneName(currentScript.SwitchToScene)</div>
+                                        <div class="small opacity-50">(@currentScript.SwitchToScene)</div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="bg-dark p-3 rounded border border-secondary">
+                                <p class="mb-0 text-gray fs-5">@currentScript.Text</p>
+                            </div>
+                        </div>
                     </div>
                 }
             </div>
@@ -136,11 +170,32 @@
 
 @code {
     private List<Script>? scripts;
-    private List<CameraInfo> cameras = new();
+    private List<CameraInfo> cameras = [];
+    private List<PageantObsScene> pageantScenes = [];
     private Script? currentScript;
     private int currentIndex = -1;
+    private bool isExecuting;
+    private int? remainingTime;
+    private CancellationTokenSource? timerCts;
 
     protected override async Task OnInitializedAsync()
+    {
+        ObsService.StateChanged += StateHasChanged;
+        if (!ObsService.IsConnected && !ObsService.IsConnecting)
+        {
+            _ = ObsService.ConnectAsync();
+        }
+
+        await LoadData();
+    }
+
+    public void Dispose()
+    {
+        ObsService.StateChanged -= StateHasChanged;
+        CancelCountdown();
+    }
+
+    private async Task LoadData()
     {
         await using PageantDb db = await DbFactory.CreateDbContextAsync();
         List<Script> rawScripts = await db.Scripts.ToListAsync();
@@ -149,26 +204,138 @@
             .ThenBy(s => s.Scene, new NaturalStringComparer())
             .ToList();
         cameras = await db.Cameras.OrderBy(c => c.Id).ToListAsync();
+        pageantScenes = await db.PageantObsScenes.ToListAsync();
+    }
+
+    private string GetFriendlySceneName(string obsSceneName)
+    {
+        if (string.IsNullOrEmpty(obsSceneName)) return "None";
+        PageantObsScene? mapping = pageantScenes.FirstOrDefault(s => s.ObsSceneName == obsSceneName);
+        return mapping != null ? mapping.Name : obsSceneName;
     }
 
     private void SelectScene(Script script)
     {
+        CancelCountdown();
         currentScript = script;
         currentIndex = scripts!.IndexOf(script);
+        _ = HandleSceneChange();
     }
 
     private void NextScene()
     {
         if (scripts == null || currentIndex >= scripts.Count - 1) return;
+        CancelCountdown();
         currentIndex++;
         currentScript = scripts[currentIndex];
+        _ = HandleSceneChange();
     }
 
     private void PreviousScene()
     {
         if (scripts == null || currentIndex <= 0) return;
+        CancelCountdown();
         currentIndex--;
         currentScript = scripts[currentIndex];
+        _ = HandleSceneChange();
+    }
+
+    private void CancelCountdown()
+    {
+        timerCts?.Cancel();
+        timerCts?.Dispose();
+        timerCts = null;
+        remainingTime = null;
+    }
+
+    private async Task StartCountdown(int seconds)
+    {
+        CancelCountdown();
+        timerCts = new CancellationTokenSource();
+        remainingTime = seconds;
+        StateHasChanged();
+
+        try
+        {
+            while (remainingTime > 0)
+            {
+                await Task.Delay(1000, timerCts.Token);
+                remainingTime--;
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task HandleSceneChange()
+    {
+        await Task.Yield(); // Let UI update
+        await Task.Delay(50); // Small delay to ensure active-scene class is applied
+        try
+        {
+            await JS.InvokeVoidAsync("scrollToActive", ".script-nav-body", ".active-scene");
+        }
+        catch { }
+    }
+
+    private async Task ExecuteCurrentScript()
+    {
+        if (currentScript == null || isExecuting) return;
+        isExecuting = true;
+        StateHasChanged();
+
+        try
+        {
+            // 1. OBS Scene Switch (Execute First)
+            if (!string.IsNullOrEmpty(currentScript.SwitchToScene) && ObsService.IsConnected)
+            {
+                await ObsService.SwitchSceneAsync(currentScript.SwitchToScene);
+            }
+
+            // 2. Camera Presets (Execute Second)
+            List<Task> camTasks = [];
+            for (int i = 1; i <= cameras.Count; i++)
+            {
+                string action = GetCamAction(currentScript, i);
+                int? preset = ParsePreset(action);
+                if (preset.HasValue)
+                {
+                    CameraInfo cam = cameras[i - 1];
+                    camTasks.Add(ViscaService.RecallPresetAsync(cam.IpAddress, cam.ViscaPort, preset.Value));
+                }
+            }
+
+            if (camTasks.Any())
+            {
+                await Task.WhenAll(camTasks);
+            }
+
+            // 3. Start Countdown (Based on Scene Length)
+            if (currentScript.SceneLength > 0)
+            {
+                _ = StartCountdown(currentScript.SceneLength);
+            }
+        }
+        catch (Exception)
+        {
+            // Log or show error
+        }
+        finally
+        {
+            isExecuting = false;
+            StateHasChanged();
+        }
+    }
+
+    private int? ParsePreset(string action)
+    {
+        if (string.IsNullOrWhiteSpace(action)) return null;
+        
+        // Try to find the first number in the string
+        string digits = new string(action.Where(char.IsDigit).ToArray());
+        if (int.TryParse(digits, out int result) && result > 0) return result;
+        
+        return null;
     }
 
     private string GetCamAction(Script s, int i) => i switch { 
@@ -176,14 +343,6 @@
         2 => s.Camera2Action, 
         3 => s.Camera3Action, 
         4 => s.Camera4Action, 
-        _ => "" 
-    };
-    
-    private string GetCamPos(Script s, int i) => i switch { 
-        1 => s.Camera1Position??"", 
-        2 => s.Camera2Position??"", 
-        3 => s.Camera3Position??"", 
-        4 => s.Camera4Position??"", 
         _ => "" 
     };
 

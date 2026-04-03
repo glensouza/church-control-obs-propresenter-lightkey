@@ -29,15 +29,9 @@ public enum FocusDirection
     Near
 }
 
-public class ViscaService
+public class ViscaService(ILogger<ViscaService> logger)
 {
-    private readonly ILogger<ViscaService> logger;
     private const int TimeoutMs = 2000;
-
-    public ViscaService(ILogger<ViscaService> logger)
-    {
-        this.logger = logger;
-    }
 
     private async Task<bool> SendCommandAsync(string ipAddress, int port, byte[] command)
     {
@@ -55,12 +49,12 @@ public class ViscaService
         }
         catch (OperationCanceledException)
         {
-            this.logger.LogWarning("VISCA command to {Ip}:{Port} timed out", ipAddress, port);
+            logger.LogWarning("VISCA command to {Ip}:{Port} timed out", ipAddress, port);
             return false;
         }
         catch (Exception ex)
         {
-            this.logger.LogError(ex, "Error sending VISCA command to {Ip}:{Port}", ipAddress, port);
+            logger.LogError(ex, "Error sending VISCA command to {Ip}:{Port}", ipAddress, port);
             return false;
         }
     }
@@ -83,6 +77,7 @@ public class ViscaService
             case PanTiltDirection.UpRight:   panDir = 0x02; tiltDir = 0x01; break;
             case PanTiltDirection.DownLeft:  panDir = 0x01; tiltDir = 0x02; break;
             case PanTiltDirection.DownRight: panDir = 0x02; tiltDir = 0x02; break;
+            case PanTiltDirection.Stop:
             default:                         panDir = 0x03; tiltDir = 0x03; ps = 0x00; ts = 0x00; break;
         }
 
@@ -120,19 +115,12 @@ public class ViscaService
 
     public Task<bool> FocusAsync(string ipAddress, int port, FocusDirection direction)
     {
-        byte[] command;
-        switch (direction)
+        byte[] command = direction switch
         {
-            case FocusDirection.Far:
-                command = [0x81, 0x01, 0x04, 0x08, 0x02, 0xFF];
-                break;
-            case FocusDirection.Near:
-                command = [0x81, 0x01, 0x04, 0x08, 0x03, 0xFF];
-                break;
-            default:
-                command = [0x81, 0x01, 0x04, 0x08, 0x00, 0xFF];
-                break;
-        }
+            FocusDirection.Far => [0x81, 0x01, 0x04, 0x08, 0x02, 0xFF],
+            FocusDirection.Near => [0x81, 0x01, 0x04, 0x08, 0x03, 0xFF],
+            _ => [0x81, 0x01, 0x04, 0x08, 0x00, 0xFF]
+        };
         return this.SendCommandAsync(ipAddress, port, command);
     }
 

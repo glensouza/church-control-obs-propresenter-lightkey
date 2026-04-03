@@ -14,13 +14,16 @@ namespace WorshipConsole.Services;
 /// Credentials are read from configuration and never sent to the browser.
 /// Registered as a scoped service — one instance per Blazor circuit.
 /// </summary>
-public sealed class ObsWebSocketService : IAsyncDisposable
+public sealed class ObsWebSocketService(
+    IConfiguration configuration,
+    SettingsService settings,
+    ILogger<ObsWebSocketService> logger)
+    : IAsyncDisposable
 {
     // ── Configuration ──
     private string host = "127.0.0.1";
     private int port = 4455;
-    private readonly string password;
-    private readonly SettingsService settings;
+    private readonly string password = configuration["OBS:Password"] ?? string.Empty;
 
     // ── WebSocket internals ──
     private ClientWebSocket? ws;
@@ -28,7 +31,6 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     private Task? receiveTask;
     private int requestCounter;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JsonNode?>> pending = new();
-    private readonly ILogger<ObsWebSocketService> logger;
 
     // ── Connection state ──
     public bool IsConnecting { get; private set; }
@@ -54,13 +56,6 @@ public sealed class ObsWebSocketService : IAsyncDisposable
     /// <summary>Raised on any state change so Blazor components can call StateHasChanged.</summary>
     public event Action? StateChanged;
 
-    public ObsWebSocketService(IConfiguration configuration, SettingsService settings, ILogger<ObsWebSocketService> logger)
-    {
-        this.settings = settings;
-        this.password = configuration["OBS:Password"] ?? string.Empty;
-        this.logger = logger;
-    }
-
     // ── Public: connection ──
 
     public async Task ConnectAsync(CancellationToken ct = default)
@@ -68,8 +63,8 @@ public sealed class ObsWebSocketService : IAsyncDisposable
         await this.CleanupAsync();
 
         // Refresh settings from DB
-        this.host = await this.settings.GetSettingAsync("OBS", "Host", "127.0.0.1");
-        this.port = await this.settings.GetSettingIntAsync("OBS", "Port", 4455);
+        this.host = await settings.GetSettingAsync("OBS", "Host", "127.0.0.1");
+        this.port = await settings.GetSettingIntAsync("OBS", "Port", 4455);
 
         this.IsConnecting = true;
         this.IsConnected = false;
@@ -147,7 +142,7 @@ public sealed class ObsWebSocketService : IAsyncDisposable
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
-            this.logger.LogWarning("Failed to fetch OBS screenshot: {Message}", ex.Message);
+            logger.LogWarning("Failed to fetch OBS screenshot: {Message}", ex.Message);
         }
     }
 

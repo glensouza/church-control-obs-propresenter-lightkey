@@ -8,6 +8,8 @@ The Admin panel can be accessed via:
 1.  **Navigation Bar**: `Livestream → Administration`
 2.  **Direct URL**: `/admin`
 
+*Note: The Admin page defaults to the **General Settings** tab.*
+
 ## Configuration Tabs
 
 ### 1. General Settings
@@ -26,7 +28,7 @@ Manage the list of PTZ cameras and their network/control settings.
 *   **Add/Edit/Delete**: Manage the list of PTZ cameras.
 *   **VISCA Port**: Usually `5678`.
 *   **UniFi Port**: The port number on the UniFi switch used for PoE power cycles (optional).
-*   **Presets**: Number of presets supported by the camera (usually `9`).
+*   **Presets**: Number of presets supported by the camera (usually `9` for manual control, though Pageant mode supports up to `99`).
 
 ### 4. ProPresenter
 Configure the connection to ProPresenter and media folder locations.
@@ -41,14 +43,18 @@ Integration settings for Planning Center Online (PCO).
 
 *   **Position Names**: Customize the team position names used to identify volunteers for ProPresenter, Livestream, and Worship Coordinator roles.
 
+### 6. Livestream
+Persistent stream IDs and default scheduling times for YouTube and Facebook APIs.
+
+### 7. Pageant Config
+A specialized tab for managing scripted production requirements.
+
+*   **Authorized Pageant OBS Scenes**: Map friendly names (labels) to actual OBS scene names. These friendly names are used in the Pageant Livestream view to make cues more readable for operators.
+*   **Scene Dropdown**: When adding or editing a mapping, you can select from a live list of scenes fetched from OBS.
+
 ## Technical Details
 
 Settings are stored in the SQLite database (`Settings` table) via the `SettingsService`. 
-
-### Initialization & Seeding
-Upon first run, the system automatically seeds the database with values from `appsettings.json` (if they exist) or project-standard defaults. This is handled in `Program.cs` via `SettingsService.InitializeFromConfigAsync()`.
-
-Subsequent changes in the Admin UI update the database directly and take precedence over `appsettings.json`. 
 
 ### Secrets
 Sensitive information (Passwords, API Secrets) is **never** stored in the database or displayed in the UI. These must be managed via `appsettings.json`.

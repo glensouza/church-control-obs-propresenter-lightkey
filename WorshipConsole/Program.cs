@@ -26,6 +26,7 @@ builder.Services.AddSingleton<SettingsService>();
 builder.Services.AddScoped<ObsWebSocketService>();
 builder.Services.AddHttpClient<PcoApiService>();
 builder.Services.AddHttpClient<ProPresenterService>();
+builder.Services.AddHttpClient<LivestreamService>();
 
 WebApplication app = builder.Build();
 
